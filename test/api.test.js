@@ -56,7 +56,7 @@ test('vendor journey: areas → capture → toolkit → agreement → pack → s
     // Toolkit before services is refused; then services + toolkit
     assert.equal((await call('PUT', `/api/vendors/${vid}/toolkit`, { tier: 15 })).status, 409);
     assert.equal((await call('PUT', `/api/vendors/${vid}/services`, { model: 'own_branded', ownDrivers: 2, vehicles: 2, services: { whatsapp: true, delivery: true, pilot: true, social: true } })).status, 200);
-    assert.equal((await call('PUT', `/api/vendors/${vid}/toolkit`, { aov: 180, opd: 25, days: 26, markup: 25, commission: 30, appDelivery: 15, appService: 4, tier: 15, paidBy: 'customer', delivery: 25 })).status, 200);
+    assert.equal((await call('PUT', `/api/vendors/${vid}/toolkit`, { aov: 180, opd: 25, days: 26, markup: 25, commission: 30, appDelivery: 15, appService: 4, tier: 15, paidBy: 'customer', delivery: 35 })).status, 200);
     v = (await call('GET', `/api/vendors/${vid}`)).body;
     assert.equal(v.stage, 'ready');
 

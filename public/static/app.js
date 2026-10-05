@@ -587,7 +587,7 @@ function viewToolkit(v) {
         <div class="grid2">
           <div class="field"><label for="t_tier">FEEST service fee</label><select id="t_tier">${p.tiers.map((x) => `<option value="${x}" ${num(t.tier) === x ? 'selected' : ''}>${x}% of menu price</option>`).join('')}</select></div>
           <div class="field"><label for="t_paid">Fee paid by</label><select id="t_paid"><option value="customer">Customer</option><option value="vendor">Vendor</option></select></div>
-          ${delivery ? `<div class="field"><label for="t_del">FEEST delivery fee to customer (R)<span class="tag">Placeholder</span></label><input id="t_del" type="number" min="0" step="1" value="${esc(t.delivery)}"></div>` : ''}
+          ${delivery ? `<div class="field"><label for="t_del">FEEST delivery fee to customer (R), all to the rider</label><input id="t_del" type="number" min="0" step="1" value="${esc(t.delivery)}"></div>` : ''}
         </div>
         <div class="err" id="tErr" hidden></div>
         <div class="acts">${ro ? '' : `<button class="btn" type="submit" id="tSave">${v.toolkitCompletedAt ? 'Save toolkit' : 'Complete toolkit'}</button>`}

@@ -63,4 +63,4 @@ To email packs straight from the app, add `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
 
 ## Placeholders to confirm
 
-Print unit costs (Setup → Print price list), the R25 FEEST delivery fee (Setup → Fees), and the agreement wording (draft for legal review, Setup → Agreement wording). Signed agreements keep the terms they were signed on.
+Print unit costs (Setup → Print price list) and the agreement wording (draft for legal review, Setup → Agreement wording). Signed agreements keep the terms they were signed on.

@@ -13,7 +13,7 @@
   // Setup → Fees overrides these. Benchmarks are press-test estimates (MyBroadband, Financial Mail).
   const DEFAULT_PRICING = {
     tiers: [10, 15, 20], defaultTier: 15, paidBy: 'customer',
-    feestDelivery: 25,           // placeholder until finance confirms
+    feestDelivery: 35,           // customer pays it; all of it goes to the rider
     appMarkup: 25, appCommission: 30, appDelivery: 15, appService: 4,
     socialSetup: 3000, vat: 15, startOffsetDays: 30,
   };

@@ -8,7 +8,7 @@ test('R180 order matches the Sales Training Manual example', () => {
   assert.equal(c.appMenu, 225);          // 25% markup
   assert.equal(c.appCustomer, 249);      // + R15 delivery + 4% service
   assert.equal(c.appVendor, 157.5);      // 30% commission on the marked-up price
-  assert.equal(c.feestCustomer, 232);    // menu price + 15% fee + R25 delivery
+  assert.equal(c.feestCustomer, 242);    // menu price + 15% fee + R35 delivery
   assert.equal(c.feestVendor, 180);      // vendor keeps the menu price
   assert.equal(c.monthOrders, 650);      // 25 a day × 26 days
   assert.equal(c.monthGain, 14625);
@@ -18,7 +18,7 @@ test('R180 order matches the Sales Training Manual example', () => {
 test('vendor paying the fee keeps menu price less the fee', () => {
   const c = F.compare({ ...F.toolkitDefaults(), paidBy: 'vendor', tier: 10 });
   assert.equal(c.feestVendor, 162);
-  assert.equal(c.feestCustomer, 205);
+  assert.equal(c.feestCustomer, 215);
 });
 
 test('pack: own branded fleet with table QR and social setup', () => {
