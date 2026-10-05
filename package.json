@@ -1,0 +1,22 @@
+{
+  "name": "feest-back-office",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FEEST back office: vendor sales, agreements, installation and go-live. Built on the ScootHero Back Office structure.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "migrate": "node scripts/migrate.js",
+    "user:create": "node scripts/create-user.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "connect-pg-simple": "^10.0.0",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "nodemailer": "^7.0.0",
+    "pdfkit": "^0.17.0",
+    "pg": "^8.23.0"
+  },
+  "engines": { "node": ">=22" }
+}

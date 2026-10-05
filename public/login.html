@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sign in · FEEST Back Office</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/styles/typography.css">
+<link rel="stylesheet" href="/static/app.css">
+<style>
+  body{min-height:100vh;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .side{background:var(--side);color:#fff;display:flex;flex-direction:column;justify-content:space-between;padding:40px}
+  .side .wm{font-size:var(--fs-brand)}
+  .side p{color:var(--side-muted);max-width:34ch}
+  .form{display:flex;align-items:center;justify-content:center;padding:24px 16px}
+  form{width:100%;max-width:360px;display:flex;flex-direction:column;gap:14px}
+  @media (max-width:760px){body{grid-template-columns:minmax(0,1fr)}.side{padding:24px 16px}.side p{display:none}}
+</style>
+</head>
+<body>
+  <div class="side">
+    <div><span class="wm">fe<span class="roll">e</span>st</span><div class="stripe" style="margin:16px 0 0;width:180px"></div></div>
+    <p>Back office for vendors: areas, sales visits, agreements, installation and go-live.</p>
+  </div>
+  <div class="form">
+    <form id="f" novalidate>
+      <h1>Sign in</h1>
+      <div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="username" required></div>
+      <div class="field"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required></div>
+      <div class="err" id="err" hidden></div>
+      <button class="btn" type="submit" id="go">Sign in</button>
+      <p class="small">Forgotten your password? Ask an admin to set a new one in Setup.</p>
+    </form>
+  </div>
+<script>
+document.getElementById('f').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const err = document.getElementById('err'), go = document.getElementById('go');
+  err.hidden = true; go.disabled = true;
+  try {
+    const r = await fetch('/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+      body: JSON.stringify({ email: document.getElementById('email').value, password: document.getElementById('password').value }) });
+    const j = await r.json().catch(() => ({}));
+    if (r.ok) { location.href = '/'; return; }
+    err.textContent = j.error || 'Could not sign in. Try again.'; err.hidden = false;
+  } catch (x) { err.textContent = 'No connection. Check your signal and try again.'; err.hidden = false; }
+  go.disabled = false;
+});
+</script>
+</body>
+</html>
