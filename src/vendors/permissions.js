@@ -32,6 +32,8 @@ const canSignForFeest = (user, vendor, areaRepIds) => canSell(user, vendor, area
 const canManageAreas = (user) => !!user && user.active && MANAGERS.includes(user.role);
 const canManageUsers = (user) => !!user && user.active && ['ceo', 'admin'].includes(user.role);
 const canEditSettings = (user) => !!user && user.active && ['ceo', 'admin'].includes(user.role);
+/** The Overview dashboard shows FEEST's margin and revenue: leads, finance and the exec only. */
+const canSeeOverview = (user) => !!user && user.active && ['sales_lead', 'finance', 'ceo', 'admin'].includes(user.role);
 const canView = (user) => !!user && user.active && ROLES.includes(user.role);
 
-module.exports = { ROLES, ROLE_LABELS, MANAGERS, canSell, canInstall, canSignForFeest, canManageAreas, canManageUsers, canEditSettings, canView };
+module.exports = { ROLES, ROLE_LABELS, MANAGERS, canSell, canInstall, canSignForFeest, canManageAreas, canManageUsers, canEditSettings, canSeeOverview, canView };

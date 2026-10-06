@@ -108,7 +108,7 @@ router.get('/bootstrap', h(async (req, res) => {
   const u = req.user;
   const [users, areas, reps, owners, cats, set, w, vendors, ags] = await Promise.all([
     db.query('SELECT id, name, email, mobile, role, active FROM users ORDER BY name'),
-    db.query('SELECT * FROM areas ORDER BY city, name'),
+    db.query('SELECT * FROM areas ORDER BY region, city, name'),
     db.query('SELECT area_id, user_id FROM area_reps'),
     db.query('SELECT id, name, reg_no, contact_name, title, email, mobile FROM owners ORDER BY name'),
     db.query('SELECT name FROM categories ORDER BY sort, name'),
@@ -120,11 +120,11 @@ router.get('/bootstrap', h(async (req, res) => {
   const repsBy = {};
   reps.rows.forEach((r) => (repsBy[r.area_id] = repsBy[r.area_id] || []).push(r.user_id));
   res.json({
-    me: { ...u, can: { manageAreas: P.canManageAreas(u), manageUsers: P.canManageUsers(u), editSettings: P.canEditSettings(u), sell: P.canSell(u, null) } },
+    me: { ...u, can: { manageAreas: P.canManageAreas(u), manageUsers: P.canManageUsers(u), editSettings: P.canEditSettings(u), sell: P.canSell(u, null), overview: P.canSeeOverview(u) } },
     roles: P.ROLES.map((k) => ({ key: k, label: P.ROLE_LABELS[k] })),
     stages: STAGES,
     users: users.rows,
-    areas: areas.rows.map((a) => ({ id: a.id, name: a.name, city: a.city, target: a.target, notes: a.notes, reps: repsBy[a.id] || [] })),
+    areas: areas.rows.map((a) => ({ id: a.id, name: a.name, city: a.city, region: a.region, target: a.target, notes: a.notes, reps: repsBy[a.id] || [] })),
     owners: owners.rows.map((o) => ({ id: o.id, name: o.name, regNo: o.reg_no, contactName: o.contact_name, title: o.title, email: o.email, mobile: o.mobile })),
     categories: cats.rows.map((c) => c.name),
     settings: { pricing: set.pricing, print: set.print, wording: w },
@@ -153,7 +153,7 @@ router.post('/uploads', h(async (req, res) => {
 // ---------- Step 1: areas ----------
 async function writeArea(req, res, id) {
   if (!P.canManageAreas(req.user)) throw deny();
-  const name = str(req.body.name, 120), city = str(req.body.city, 120);
+  const name = str(req.body.name, 120), city = str(req.body.city, 120), region = str(req.body.region, 80);
   if (!name) throw bad('Enter the area name.');
   const reps = (Array.isArray(req.body.reps) ? req.body.reps : []).filter(isUuid);
   const target = req.body.target === null || req.body.target === '' || req.body.target === undefined ? null : int(req.body.target, 0, 100000);
@@ -162,10 +162,10 @@ async function writeArea(req, res, id) {
     if (id) {
       before = (await c.query('SELECT * FROM areas WHERE id = $1 FOR UPDATE', [id])).rows[0];
       if (!before) throw notFound('Area');
-      row = (await c.query('UPDATE areas SET name=$2, city=$3, target=$4, notes=$5, updated_at=now() WHERE id=$1 RETURNING *', [id, name, city, target, str(req.body.notes)])).rows[0];
+      row = (await c.query('UPDATE areas SET name=$2, city=$3, target=$4, notes=$5, region=$6, updated_at=now() WHERE id=$1 RETURNING *', [id, name, city, target, str(req.body.notes), region])).rows[0];
       await c.query('DELETE FROM area_reps WHERE area_id = $1', [id]);
     } else {
-      row = (await c.query('INSERT INTO areas (name, city, target, notes) VALUES ($1,$2,$3,$4) RETURNING *', [name, city, target, str(req.body.notes)])).rows[0];
+      row = (await c.query('INSERT INTO areas (name, city, target, notes, region) VALUES ($1,$2,$3,$4,$5) RETURNING *', [name, city, target, str(req.body.notes), region])).rows[0];
     }
     for (const r of reps) await c.query('INSERT INTO area_reps (area_id, user_id) SELECT $1, id FROM users WHERE id = $2 ON CONFLICT DO NOTHING', [row.id, r]);
     await audit(c, { actorId: req.user.id, action: id ? 'area.update' : 'area.create', entity: 'area', entityId: row.id, before, after: { ...row, reps }, ip: req.ip });

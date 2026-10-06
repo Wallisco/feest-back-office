@@ -121,7 +121,7 @@ function Combo(host, cfg) {
 /* ---------- Routing ---------- */
 let current = { onData: null };
 function route() {
-  const h = location.hash.replace(/^#/, '') || 'dashboard';
+  const h = location.hash.replace(/^#/, '') || (S.me && S.me.can.overview ? 'overview' : 'dashboard');
   const [a, b, c] = h.split('/');
   document.querySelectorAll('nav.side a').forEach((l) => l.removeAttribute('aria-current'));
   const key = a === 'vendor' ? 'funnel/all' : a === 'setup' ? 'setup' : a === 'funnel' ? 'funnel/' + (b || 'all') : a;
@@ -135,6 +135,7 @@ function route() {
   else if (a === 'areas') viewAreas();
   else if (a === 'funnel') viewFunnel(b || 'all');
   else if (a === 'setup') viewSetup(b || (S.me.can.manageUsers ? 'team' : 'account'));
+  else if (a === 'overview' && S.me.can.overview) viewOverview();
   else viewDashboard();
 }
 window.addEventListener('hashchange', route);
@@ -148,6 +149,7 @@ function renderNav() {
     return `<a class="navlink" href="#funnel/${s.key}"><span>${esc(s.label)}</span><span class="n${hot ? ' hot' : ''}">${n || ''}</span></a>`;
   }).join('');
   $('navNew').hidden = !S.me.can.sell;
+  $('navOverview').hidden = !S.me.can.overview;
   $('who').innerHTML = `<b>${esc(S.me.name)}</b>${esc(roleLabel(S.me.role))}<button type="button" id="logout">Sign out</button>`;
   $('logout').onclick = async () => { await POST('/auth/logout').catch(() => {}); location.href = '/login'; };
   const h = location.hash.replace(/^#/, '');
@@ -232,6 +234,8 @@ function viewAreas() {
           <div class="field"><label for="a_name">Area</label><input id="a_name" required placeholder="e.g. Claremont" value="${esc(editing?.name || '')}"></div>
           <div class="field"><label for="a_city">City</label><input id="a_city" list="cityList" placeholder="e.g. Cape Town" value="${esc(editing?.city || '')}">
             <datalist id="cityList">${[...new Set(S.areas.map((a) => a.city).filter(Boolean))].map((c) => `<option value="${esc(c)}">`).join('')}</datalist></div>
+          <div class="field"><label for="a_region">Region</label><input id="a_region" list="regionList" placeholder="e.g. Western Cape" value="${esc(editing?.region || '')}">
+            <datalist id="regionList">${[...new Set(S.areas.map((a) => a.region).filter(Boolean))].map((c) => `<option value="${esc(c)}">`).join('')}</datalist></div>
           <div class="field"><label for="a_target">Vendor target</label><input id="a_target" type="number" min="0" inputmode="numeric" placeholder="e.g. 40" value="${esc(editing?.target ?? '')}"></div>
           <div class="field span2"><span class="lbl">Sales reps allocated</span>
             ${reps.length ? `<div class="chips" id="a_reps">${reps.map((u) => `<label class="chip"><input type="checkbox" value="${esc(u.id)}" ${(editing?.reps || []).includes(u.id) ? 'checked' : ''}> ${esc(u.name)}</label>`).join('')}</div>`
@@ -240,12 +244,12 @@ function viewAreas() {
           <div class="field"><label for="a_notes">Notes</label><input id="a_notes" placeholder="Precinct, main roads, malls" value="${esc(editing?.notes || '')}"></div>
           <div class="acts span2"><button class="btn" type="submit" id="a_save">${editing ? 'Save area' : 'Add area'}</button>${editing ? '<button class="btn btn-ghost" type="button" id="a_cancel">Cancel</button>' : ''}</div>
         </form></div>` : '<p class="ro">Only sales leads and admins change areas. You can see your allocation below.</p>'}
-      ${S.areas.length ? `<div class="tablewrap"><table><thead><tr><th>Area</th><th>City</th><th>Reps</th><th class="r">Vendors</th><th class="r">Live</th><th class="r">Target</th>${can ? '<th></th>' : ''}</tr></thead><tbody>
+      ${S.areas.length ? `<div class="tablewrap"><table><thead><tr><th>Area</th><th>City</th><th>Region</th><th>Reps</th><th class="r">Vendors</th><th class="r">Live</th><th class="r">Target</th>${can ? '<th></th>' : ''}</tr></thead><tbody>
         ${S.areas.map((a) => {
           const vs = S.vendors.filter((v) => v.areaId === a.id && v.stage !== 'notnow');
           const live = vs.filter((v) => v.stage === 'live').length;
           const rn = a.reps.map((id) => nm('users', id)).filter(Boolean);
-          return `<tr><td class="strong">${esc(a.name)}</td><td>${esc(a.city || '')}</td><td>${rn.length ? esc(rn.join(', ')) : '<span class="pill st-notnow">No rep</span>'}</td>
+          return `<tr><td class="strong">${esc(a.name)}</td><td>${esc(a.city || '')}</td><td>${esc(a.region || '—')}</td><td>${rn.length ? esc(rn.join(', ')) : '<span class="pill st-notnow">No rep</span>'}</td>
             <td class="r"><a href="#funnel/all" data-area="${esc(a.id)}">${vs.length}</a></td><td class="r">${live}</td><td class="r">${a.target ? esc(a.target) : '—'}</td>
             ${can ? `<td class="r"><button class="btn btn-sm btn-ghost" data-edit="${esc(a.id)}">Edit</button></td>` : ''}</tr>`;
         }).join('')}</tbody></table></div>`
@@ -254,7 +258,7 @@ function viewAreas() {
     if (can) {
       $('areaForm').onsubmit = async (e) => {
         e.preventDefault();
-        const data = { name: $('a_name').value.trim(), city: $('a_city').value.trim(), target: $('a_target').value === '' ? null : num($('a_target').value),
+        const data = { name: $('a_name').value.trim(), city: $('a_city').value.trim(), region: $('a_region').value.trim(), target: $('a_target').value === '' ? null : num($('a_target').value),
           notes: $('a_notes').value.trim(), reps: [...document.querySelectorAll('#a_reps input:checked')].map((i) => i.value) };
         $('a_save').disabled = true;
         try { if (editing) await PUT('/api/areas/' + editing.id, data); else await POST('/api/areas', data); toast(editing ? 'Area saved' : 'Area added'); editing = null; await refresh(); draw(); }
@@ -560,6 +564,168 @@ function viewServices(v) {
       toast('Saved'); await refresh(); location.hash = 'vendor/' + v.id + '/toolkit';
     } catch (ex) { $('sErr').textContent = ex.message; $('sErr').hidden = false; $('sSave').disabled = false; }
   };
+}
+
+
+/* ---------- Overview dashboard ---------- */
+const OV = { days: Number(lsGet('ov.days')) || 30, region: lsGet('ov.region') || '', area: lsGet('ov.area') || '', data: null };
+const pctf = (n, dp = 1) => (n === null || n === undefined ? '–' : n.toLocaleString('en-ZA', { maximumFractionDigits: dp }) + '%');
+const minf = (n) => (n === null || n === undefined ? '–' : n.toLocaleString('en-ZA', { maximumFractionDigits: 1 }) + ' min');
+const intf = (n) => (n === null || n === undefined ? '–' : Number(n).toLocaleString('en-ZA'));
+const Rf = (n, dp = 0) => (n === null || n === undefined ? '–' : R(n, dp));
+
+function tile(k, v, sub, opts = {}) {
+  return `<div class="stat${opts.primary ? ' lead' : ''}"><div class="k">${esc(k)}</div><div class="v">${v}</div>${sub ? `<div class="s">${sub}</div>` : ''}</div>`;
+}
+function vsTarget(val, target) {
+  if (val === null || val === undefined) return 'Not measured yet';
+  const over = val > target;
+  return `<span class="tg ${over ? 'bad' : 'good'}">${over ? '▲' : '▼'} target ${target} min</span>`;
+}
+
+async function viewOverview() {
+  const areasIn = S.areas.filter((a) => !OV.region || a.region === OV.region);
+  if (OV.area && !areasIn.find((a) => a.id === OV.area)) OV.area = '';
+  const regions = [...new Set(S.areas.map((a) => a.region).filter(Boolean))].sort();
+  $('main').innerHTML = `<div class="wrap ov">
+    <div class="pagehead"><div><div class="eyebrow">FEEST</div><h1>Overview</h1></div></div>
+    <div class="filters" role="group" aria-label="Filters">
+      <div class="seg" role="group" aria-label="Period">${[7, 30, 60, 90].map((d) => `<button type="button" data-days="${d}" aria-pressed="${OV.days === d}">${d} days</button>`).join('')}</div>
+      <label class="fsel"><span>Region</span><select id="ovRegion"><option value="">All regions</option>${regions.map((r) => `<option ${OV.region === r ? 'selected' : ''}>${esc(r)}</option>`).join('')}</select></label>
+      <label class="fsel"><span>Area</span><select id="ovArea"><option value="">All areas</option>${sorted(areasIn).map((a) => `<option value="${esc(a.id)}" ${OV.area === a.id ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></label>
+    </div>
+    <div id="ovBody" aria-live="polite">${OV.data ? '' : '<p class="small">Loading…</p>'}</div></div>`;
+  document.querySelectorAll('[data-days]').forEach((b) => (b.onclick = () => { OV.days = Number(b.dataset.days); lsSet('ov.days', OV.days); viewOverview(); }));
+  $('ovRegion').onchange = () => { OV.region = $('ovRegion').value; OV.area = ''; lsSet('ov.region', OV.region); lsSet('ov.area', ''); viewOverview(); };
+  $('ovArea').onchange = () => { OV.area = $('ovArea').value; lsSet('ov.area', OV.area); viewOverview(); };
+  if (OV.data) { drawOverview(OV.data); $('ovBody').style.opacity = 0.5; }
+  try {
+    const q = new URLSearchParams({ days: OV.days, region: OV.region, area: OV.area });
+    const d = await GET('/api/dashboard?' + q);
+    if (location.hash.replace(/^#/, '') && location.hash !== '#overview') return;
+    OV.data = d; drawOverview(d); $('ovBody').style.opacity = 1;
+  } catch (e) { $('ovBody').innerHTML = `<div class="card"><p>${esc(e.message)}</p></div>`; }
+}
+
+function drawOverview(d) {
+  const per = `last ${d.period.days} days`;
+  const p12 = d.projected12;
+  const p12sub = p12.fromRunRate + p12.fromEstimate
+    ? `${p12.fromRunRate} store${p12.fromRunRate === 1 ? '' : 's'} on 30-day run rate, ${p12.fromEstimate} on toolkit estimate` : 'No live or signed stores yet';
+  const T = d.targets, t = d.times;
+  $('ovBody').innerHTML = `
+    ${d.demo ? '<div class="banner demo"><b>Demo data.</b> These orders, drivers and stores are sample data on the test server. Real numbers replace them once dispatch is connected.</div>' : ''}
+    ${!d.hasOrders ? '<div class="banner">No orders in this period yet. Store and margin numbers use vendor data; order numbers start once dispatch sends orders.</div>' : ''}
+    <h2 class="ovh">Stores and money</h2>
+    <div class="tiles">
+      ${tile('Stores live', intf(d.stores.live), d.stores.starting ? `${d.stores.starting} signed, starting soon` : 'none signed and waiting', { primary: true })}
+      ${tile('Avg FEEST margin per store', d.avgStoreMargin === null ? '–' : Rf(d.avgStoreMargin), d.avgStoreMargin === null ? 'Needs a store with 30 days of orders' : `a month, ${d.avgStoreMarginStores} store${d.avgStoreMarginStores === 1 ? '' : 's'} with 30 days of orders`)}
+      ${tile('Projected FEEST margin, next 12 months', Rf(p12.total), esc(p12sub))}
+      ${tile('Gross order value', Rf(d.gmv), per)}
+      ${tile('Take rate', pctf(d.takeRate, 2), `FEEST fee ${Rf(d.feestFee)}; margin after card fees ${Rf(d.margin)}`)}
+      ${tile('Average order value', Rf(d.aov, 2), 'food at menu prices')}
+    </div>
+    <h2 class="ovh">Orders and drivers</h2>
+    <div class="tiles">
+      ${tile('Orders delivered', intf(d.orders.delivered), `${intf(d.orders.perDay)} a day, ${per}`)}
+      ${tile('Lost orders', pctf(d.lost.pct), `${intf(d.lost.n)} of ${intf(d.orders.created)} not delivered`)}
+      ${tile('Driver JAR', pctf(d.jar.pct), `${intf(d.jar.accepted)} of ${intf(d.jar.offers)} offers accepted`)}
+      ${tile('Drivers', intf(d.drivers.active), `${intf(d.drivers.delivering7)} delivered in the last 7 days; ${intf(d.drivers.onboarding)} onboarding`)}
+      ${tile('Orders per driver a day', d.drivers.ordersPerDriverDay === null ? '–' : intf(d.drivers.ordersPerDriverDay), 'drivers who delivered')}
+      ${tile('On time', pctf(d.times.onTimePct), `stacked runs: ${pctf(t.stackedPct)} of orders`)}
+    </div>
+    <h2 class="ovh">Times</h2>
+    <div class="tiles three">
+      ${tile('Avg store wait', minf(t.storeWait), `driver at store → collected · ${vsTarget(t.storeWait, T.storeWait)}`)}
+      ${tile('Avg delivery lead time', minf(t.deliveryLead), `collected → delivered · ${vsTarget(t.deliveryLead, T.deliveryLead)}`)}
+      ${tile('Avg order to delivered', minf(t.orderToDelivered), `paid → delivered · ${vsTarget(t.orderToDelivered, T.orderToDelivered)}`)}
+    </div>
+    <div class="grid2 ovcharts">
+      <div class="card"><h2>Orders delivered a day</h2><div class="chart" id="chOrders"></div></div>
+      <div class="card"><h2>Take rate</h2><div class="chart" id="chTake"></div></div>
+    </div>
+    <div class="grid2" style="align-items:start">
+      <div class="card"><h2>Why orders were lost</h2>${d.lost.reasons.length ? lostBars(d.lost.reasons) : '<p class="small">No lost orders in this period.</p>'}</div>
+      <div class="card"><h2>How these are measured</h2><ul class="small defs">
+        <li><b>FEEST margin</b>: service fee less card fees FEEST pays. The delivery fee goes to the rider.</li>
+        <li><b>Projected 12 months</b>: a store's last 30 days × 12 once it has 30 days of orders; before that its toolkit estimate, from its start date.</li>
+        <li><b>Take rate</b>: FEEST fee ÷ order value, summed over the period (not an average of days).</li>
+        <li><b>Lost orders</b>: cancelled, failed or never assigned.</li>
+        <li><b>JAR</b>: job acceptance rate, offers accepted ÷ offers shown to drivers.</li>
+        <li><b>Moving averages</b>: trailing 30 and 60 days, drawn once the window is full.</li></ul></div>
+    </div>
+    <div class="card"><h2>By area</h2>${areaTable(d.byArea)}</div>`;
+  lineChart($('chOrders'), d.series, [
+    { key: 'orders', label: 'Daily', cls: 'daily' }, { key: 'orders30', label: '30-day average', cls: 's1' }, { key: 'orders60', label: '60-day average', cls: 's2' }],
+    (v) => intf(Math.round(v)), (v) => v.toLocaleString('en-ZA', { maximumFractionDigits: 1 }));
+  lineChart($('chTake'), d.series, [
+    { key: 'take', label: 'Daily', cls: 'daily' }, { key: 'take30', label: '30-day average', cls: 's1' }, { key: 'take60', label: '60-day average', cls: 's2' }],
+    (v) => v.toFixed(1) + '%', (v) => v.toFixed(2) + '%', { zero: false });
+}
+
+function lostBars(rows) {
+  const max = Math.max(...rows.map((r) => r.n));
+  const label = (k) => ({ cancelled: 'Cancelled', failed: 'Failed delivery', unassigned: 'No driver accepted' }[k] || k);
+  return `<div class="hbars">${rows.map((r) => `<div class="hbar" title="${esc(label(r.reason))}: ${r.n}"><span class="hl">${esc(label(r.reason))}</span>
+    <span class="ht"><i style="width:${Math.max(2, r.n / max * 100)}%"></i></span><b>${intf(r.n)}</b></div>`).join('')}</div>`;
+}
+
+function areaTable(rows) {
+  if (!rows.length) return '<p class="small">No live stores or orders in these areas yet.</p>';
+  return `<div class="tablewrap"><table><thead><tr><th>Region</th><th>Area</th><th class="r">Stores</th><th class="r">Orders</th><th class="r">AOV</th><th class="r">Take rate</th><th class="r">FEEST margin</th><th class="r">Lost</th><th class="r">Order to delivered</th></tr></thead><tbody>
+    ${rows.map((r) => `<tr><td>${esc(r.region || '—')}</td><td class="strong">${esc(r.name)}</td><td class="r">${intf(r.stores)}</td><td class="r">${intf(r.delivered)}</td>
+      <td class="r">${Rf(r.aov, 2)}</td><td class="r">${pctf(r.takeRate, 2)}</td><td class="r">${Rf(r.margin)}</td><td class="r">${pctf(r.lostPct)}</td><td class="r">${minf(r.orderToDelivered)}</td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+
+/** Line chart: daily values thin and quiet, moving averages as the two coloured lines. Crosshair + one tooltip for every series. */
+function lineChart(host, data, series, axisFmt, tipFmt, opts = {}) {
+  const W = Math.max(300, Math.round(host.clientWidth || 640)), H = 240, m = { t: 12, r: 64, b: 26, l: 52 };
+  const vals = []; data.forEach((d) => series.forEach((s) => { if (d[s.key] !== null && d[s.key] !== undefined) vals.push(d[s.key]); }));
+  if (!vals.length) { host.innerHTML = '<p class="small">No data in this period yet.</p>'; return; }
+  const hi = Math.max(...vals), lo = Math.min(...vals);
+  const min = opts.zero === false ? Math.max(0, lo - (hi - lo) * 0.6 - 0.5) : 0, max = (hi + (hi - min) * 0.08) || 1;
+  const x = (i) => m.l + (data.length === 1 ? 0 : i / (data.length - 1)) * (W - m.l - m.r);
+  const y = (v) => m.t + (1 - (v - min) / (max - min)) * (H - m.t - m.b);
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((k) => min + k * (max - min));
+  const path = (key) => { let dd = '', pen = false; data.forEach((r, i) => { const v = r[key]; if (v === null || v === undefined) { pen = false; return; } dd += (pen ? 'L' : 'M') + x(i).toFixed(1) + ',' + y(v).toFixed(1); pen = true; }); return dd; };
+  const lastOf = (key) => { for (let i = data.length - 1; i >= 0; i--) if (data[i][key] !== null && data[i][key] !== undefined) return { i, v: data[i][key] }; return null; };
+  const step = Math.max(1, Math.ceil(data.length / Math.max(2, Math.floor((W - m.l - m.r) / 70))));
+  const fmtDay = (iso) => new Date(iso + 'T12:00:00Z').toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' });
+  const labels = series.filter((s) => s.cls !== 'daily').map((s) => ({ s, l: lastOf(s.key) })).filter((o) => o.l);
+  // keep end labels apart
+  labels.sort((a, b) => y(a.l.v) - y(b.l.v)); let prev = -99; labels.forEach((o) => { o.ly = Math.max(y(o.l.v), prev + 14); prev = o.ly; });
+  host.innerHTML = `<div class="legend">${series.map((s) => `<span><i class="key ${s.cls}"></i>${esc(s.label)}</span>`).join('')}</div>
+    <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc(series.map((s) => s.label).join(', '))} over ${data.length} days">
+      ${ticks.map((v) => `<g class="grid"><line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/><text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${esc(axisFmt(v))}</text></g>`).join('')}
+      ${data.map((r, i) => (i % step === 0 ? `<text class="xl" x="${x(i)}" y="${H - 6}" text-anchor="middle">${esc(fmtDay(r.day))}</text>` : '')).join('')}
+      ${series.map((s) => `<path class="ln ${s.cls}" d="${path(s.key)}"/>`).join('')}
+      ${labels.map((o) => `<text class="endl ${o.s.cls}" x="${x(o.l.i) + 8}" y="${o.ly + 4}">${esc(tipFmt(o.l.v))}</text>`).join('')}
+      <line class="xh" id="${host.id}X" y1="${m.t}" y2="${H - m.b}" x1="0" x2="0" visibility="hidden"/>
+      <rect class="hit" x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}" tabindex="0" aria-label="Chart data: use arrow keys"/>
+    </svg><div class="ctip" hidden></div>
+    <details class="small"><summary>Show as a table</summary><div class="tablewrap compact"><table><thead><tr><th>Day</th>${series.map((s) => `<th class="r">${esc(s.label)}</th>`).join('')}</tr></thead><tbody>
+      ${data.slice().reverse().map((r) => `<tr><td>${esc(fmtDay(r.day))}</td>${series.map((s) => `<td class="r">${r[s.key] === null || r[s.key] === undefined ? '–' : esc(tipFmt(r[s.key]))}</td>`).join('')}</tr>`).join('')}</tbody></table></div></details>`;
+  const svg = host.querySelector('svg'), hit = host.querySelector('.hit'), xh = host.querySelector('.xh'), tip = host.querySelector('.ctip');
+  let cur = data.length - 1;
+  const show = (i) => {
+    cur = Math.max(0, Math.min(data.length - 1, i));
+    const r = data[cur], px = x(cur);
+    xh.setAttribute('x1', px); xh.setAttribute('x2', px); xh.setAttribute('visibility', 'visible');
+    tip.textContent = '';
+    const hd = document.createElement('div'); hd.className = 'th'; hd.textContent = fmtDay(r.day); tip.appendChild(hd);
+    series.forEach((s) => { const row = document.createElement('div'); row.className = 'tr';
+      const k = document.createElement('i'); k.className = 'key ' + s.cls; const v = document.createElement('b'); v.textContent = r[s.key] === null || r[s.key] === undefined ? '–' : tipFmt(r[s.key]);
+      const l = document.createElement('span'); l.textContent = s.label; row.append(k, v, l); tip.appendChild(row); });
+    tip.hidden = false;
+    const box = svg.getBoundingClientRect(), left = px / W * box.width;
+    tip.style.left = Math.min(box.width - tip.offsetWidth, Math.max(0, left + 12 > box.width - tip.offsetWidth ? left - tip.offsetWidth - 12 : left + 12)) + 'px';
+  };
+  const hide = () => { xh.setAttribute('visibility', 'hidden'); tip.hidden = true; };
+  hit.addEventListener('pointermove', (e) => { const box = svg.getBoundingClientRect(), px = (e.clientX - box.left) / box.width * W; show(Math.round((px - m.l) / (W - m.l - m.r) * (data.length - 1))); });
+  hit.addEventListener('pointerleave', hide); hit.addEventListener('blur', hide);
+  hit.addEventListener('focus', () => show(cur));
+  hit.addEventListener('keydown', (e) => { if (e.key === 'ArrowLeft') { show(cur - 1); e.preventDefault(); } if (e.key === 'ArrowRight') { show(cur + 1); e.preventDefault(); } });
 }
 
 /* ---------- Step: Sales toolkit ---------- */

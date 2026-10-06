@@ -6,7 +6,7 @@ The one FEEST back office: vendors, operations, drivers, pricing, payouts and me
 - **Build steps for Claude Code:** `docs/claude-code-playbook.md` (one session per step, plan mode first)
 - **Rules:** `CLAUDE.md`
 
-**Built:** the Vendors module. Areas and reps → capture a vendor → model and services → sales toolkit → agreement signed on screen → pack emailed for sign-off → installation → live.
+**Built:** the Overview dashboard (stores, FEEST margin and 12-month projection, take rate and orders with 30/60-day moving averages, AOV, lost orders, driver JAR, store wait and lead times, by region and area) and the Vendors module. Areas and reps → capture a vendor → model and services → sales toolkit → agreement signed on screen → pack emailed for sign-off → installation → live.
 
 **Next (playbook steps 0–10):** module switcher and roles, server, dispatch service key and event feed, Operations, live map, Drivers, Pricing zones, Metrics for the ten order segments, vendor go-live into dispatch, weekly payouts to the Altron wallet, Overview, and retiring ops.html.
 

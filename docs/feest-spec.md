@@ -170,6 +170,31 @@ Every segment can be broken down by store, area, driver, hour and day, and expor
 
 ---
 
+## 4a. Overview dashboard (built)
+
+`#overview`, for sales leads, finance, CEO and admin (it shows FEEST's margin). Filters in one row: 7, 30, 60 or 90 days; region; area. Areas carry a region (Areas and reps).
+
+| Tile | Definition |
+|---|---|
+| Stores live | Vendors live now; signed-but-not-live shown as "starting soon" |
+| Avg FEEST margin per store | FEEST margin over the last 30 days ÷ stores with 30 days of orders. FEEST margin = service fee − card fees FEEST pays; the delivery fee is the rider's |
+| Projected FEEST margin, next 12 months | Per store: last-30-day margin × 12 once it has 30 days of orders, otherwise its toolkit estimate (`finance.feestMarginMonth`) × the months it trades in the next 12, from its start date |
+| Gross order value, AOV | Food at menu prices on delivered orders; AOV = GMV ÷ delivered orders |
+| Take rate | FEEST fee ÷ GMV, summed over the period (never an average of daily rates) |
+| Orders delivered, orders per driver a day | Delivered orders; ÷ drivers who delivered ÷ days |
+| Lost orders | Cancelled, failed or never assigned ÷ orders created, with reasons |
+| Driver JAR | Offers accepted ÷ offers answered or left to expire. When one of the 5 drivers accepts, the others' offers are withdrawn and don't count |
+| Drivers | Active drivers; how many delivered in the last 7 days; onboarding |
+| On time, stacked | Delivered by the promised time; share of orders on stacked runs |
+| Avg store wait | Driver at store → collected (target 4 min, segment 6) |
+| Avg delivery lead time | Collected → delivered (target 12 min, segments 7–8) |
+| Avg order to delivered | Paid → delivered (target 36 min, segments 3–8) |
+| Moving averages | Orders a day and take rate, trailing 30 and 60 days, drawn once the window is full |
+
+Plus: lost-order reasons, and a by-area table (region, area, stores, orders, AOV, take rate, FEEST margin, lost %, order to delivered).
+
+Data: `order_facts`, `driver_offers` and `drivers` (migration 002), filled by the dispatch event feed (step 7). Until then a test server can load sample data: `node scripts/demo-orders.js --test-server` (every row flagged `demo`, every store named "Sample: …", a "Demo data" banner shows; `--remove` deletes it). The definitions live in `src/metrics/dashboard.js`. At 1m orders a month, add a daily rollup table before the 90-day view slows down; the API caches each view for 60 seconds.
+
 ## 5. Operations
 
 ### Orders

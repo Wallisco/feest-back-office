@@ -119,6 +119,16 @@ test('vendor journey: areas → capture → toolkit → agreement → pack → s
     await a.end();
     assert.deepEqual(actions, ['vendor.create', 'vendor.services', 'vendor.toolkit', 'vendor.toolkit', 'agreement.sign', 'pack.marked_emailed', 'pack.signed_off', 'install.update', 'vendor.live']);
 
+    // Overview dashboard: refused for a rep; admin sees it, empty-safe
+    assert.equal((await call('GET', '/api/dashboard?days=30')).status, 403);
+    await call('POST', '/auth/logout'); cookie = '';
+    await call('POST', '/auth/login', { email: 'admin@test.local', password: 'correct-horse-1' });
+    const ov = await call('GET', '/api/dashboard?days=30');
+    assert.equal(ov.status, 200);
+    assert.equal(ov.body.stores.live, 1);
+    assert.equal(ov.body.jar.pct, null, 'no offers is not 0%');
+    assert.equal(ov.body.series.length, 30);
+
     // Public toolkit
     const tk = await fetch(base + '/toolkit');
     assert.equal(tk.status, 200);

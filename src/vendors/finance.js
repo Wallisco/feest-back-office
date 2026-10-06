@@ -16,6 +16,7 @@
     feestDelivery: 35,           // customer pays it; all of it goes to the rider
     appMarkup: 25, appCommission: 30, appDelivery: 15, appService: 4,
     socialSetup: 3000, vat: 15, startOffsetDays: 30,
+    cardFee: 3, cardPaidBy: 'feest', // card processing on what the customer pays (Keychat rate)
   };
 
   // Setup → Print price list overrides these. Unit costs are placeholders until a supplier quote.
@@ -164,6 +165,18 @@
     });
   }
 
+  /**
+   * FEEST's own margin from one store a month, from its toolkit numbers: the service fee
+   * less card processing when FEEST carries it. The delivery fee is not FEEST's: all of it goes
+   * to the rider. Used for the dashboard projection until a store has 30 days of real orders.
+   */
+  function feestMarginMonth(t, p) {
+    p = pricing(p);
+    const r = toolkitResult(t);
+    const card = p.cardPaidBy === 'feest' ? r.feestCustomer * num(p.cardFee) / 100 : 0;
+    return round2((r.fee - card) * r.monthOrders);
+  }
+
   /** v: {model, services, ownDrivers, vehicles, tables, printQty} */
   function printQty(item, v) {
     const s = v.services || {};
@@ -198,5 +211,5 @@
     return d.toISOString().slice(0, 10);
   }
 
-  return { DEFAULT_PRICING, DEFAULT_PRINT, MODELS, SERVICES, APPS, pricing, printList, toolkitDefaults, compare, priceCheck, appToolkit, toolkitResult, printQty, packCost, defaultStartDate };
+  return { DEFAULT_PRICING, DEFAULT_PRINT, MODELS, SERVICES, APPS, pricing, printList, toolkitDefaults, compare, priceCheck, appToolkit, toolkitResult, feestMarginMonth, printQty, packCost, defaultStartDate };
 });
