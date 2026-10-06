@@ -83,4 +83,4 @@ cat $KEY.pub
 echo "  2. In the repo's GitHub Actions secrets set SSH_HOST, SSH_USER=deploy and SSH_KEY"
 echo "     (the same Actions key the ScootHero back office uses is fine)."
 echo "  3. Push to main. After the first deploy, create the first login:"
-echo "     sudo -u $APP_USER bash -c 'cd $BASE/current && set -a && . ../shared/.env && node scripts/create-user.js --name \"Wahlied Cole\" --email wahlied@scoothero.co.za --role ceo'"
+echo "     sudo -u $APP_USER bash -c 'cd $BASE/current && set -a && . $BASE/shared/.env && set +a && node scripts/create-user.js --name \"Wahlied Cole\" --email wahlied@scoothero.co.za --role ceo'"
