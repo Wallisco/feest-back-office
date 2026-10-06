@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 // Creates (or resets the password of) a back-office login. Use it once for the first admin.
-//   DATABASE_URL=... node scripts/create-user.js --name "Wahlied Cole" --email you@feest.co.za --role ceo
+//   DATABASE_URL=... node scripts/create-user.js --name "Wahlied Cole" --email wahlied@scoothero.co.za --role ceo
 // Prints a random password unless --password is given.
 const crypto = require('crypto');
 const { Client } = require('pg');

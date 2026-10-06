@@ -21,23 +21,23 @@ The spec is `docs/feest-spec.md`. The rules are `CLAUDE.md`.
 **Check:** locally, a dispatcher sees Overview, Operations and Drivers; a sales rep sees only Vendors.
 
 ## Step 1 — Server and pipeline (you do the server part)
-The back office goes on the ScootHero HostyAfrica VPS beside the ScootHero back office (spec open decision 2).
+For now the back office runs as a **test server under ScootHero**: `delivery-test.scoothero.co.za` on the ScootHero HostyAfrica VPS, beside the ScootHero back office (own database, PM2 process and Nginx site). It moves to its own domain when the FEEST name and hosting are final (spec open decision 2).
 
 On the server, as root:
 ```bash
 git clone https://github.com/Wallisco/feest-back-office /tmp/feest && cd /tmp/feest
-DOMAIN=backoffice.feest.co.za EMAIL=wahlied@quikr.co.za bash deploy/add-to-server.sh
+DOMAIN=delivery-test.scoothero.co.za EMAIL=wahlied@quikr.co.za bash deploy/add-to-server.sh
 ```
 It creates the `feest_backoffice` database, `.env`, the PM2 process on port 3100, the Nginx site with SSL, and nightly backups, and prints a deploy key.
 1. Add the printed key to the GitHub repo → Settings → Deploy keys (read-only).
 2. GitHub → Settings → Secrets: `SSH_HOST`, `SSH_USER` = deploy, `SSH_KEY`.
-3. Point `backoffice.feest.co.za` at the server's IP.
+3. Point `delivery-test.scoothero.co.za` at the server's IP.
 4. Push to `main`.
 
 Then in Claude Code:
 > Check the last GitHub Actions run and fix anything that failed. Then, over SSH on the server, create my CEO login with scripts/create-user.js.
 
-**Check:** https://backoffice.feest.co.za shows the login page and `/healthz` reports the migrations.
+**Check:** https://delivery-test.scoothero.co.za shows the login page and `/healthz` reports the migrations.
 
 ## Step 2 — Dispatch: get the repo current and close the ops routes (dispatch repo)
 Run this one in `Wallisco/habibi-delivery`.

@@ -251,7 +251,7 @@ Missing link: **go-live creates the store in dispatch.** When a vendor goes live
 ## 11. Open decisions
 
 1. **Default driver pay.** Flat R35 per delivery, which is the customer's delivery fee (toolkit and Plus pilot), or km × zone rate (project brief)? Proposed: flat R35 as the default rate card, with per-km zones where distances are long.
-2. **Hosting.** Back office on the ScootHero HostyAfrica VPS (decided 5 Oct) or on the dispatch server beside the engine? Either works over the service key. Proposed: keep the ScootHero VPS; keep OSRM and dispatch on the dispatch server.
+2. **Hosting.** For now: a test server under ScootHero, `delivery-test.scoothero.co.za` on the ScootHero HostyAfrica VPS (decided 6 Oct). Still open: the final domain and whether production stays there or moves beside dispatch. Either works over the service key.
 3. **The dispatch repo is behind.** `Wallisco/habibi-delivery` on GitHub has 5 commits on `main` and nothing else. The lifecycle, OSRM, auth and route-split work, and the `production-readiness` branch (Keychat v1.2, idempotency keys), are not on GitHub, and the repo is public. Before step 2: push all of it, then make the repo private.
 4. **Altron wallet.** API documentation, sandbox keys and whether transfers are per driver or a bulk file.
 5. **Phone orders.** Where "take time" comes from: Pilot POS, a store screen, or not measured for now.

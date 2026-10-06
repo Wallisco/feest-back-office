@@ -58,9 +58,9 @@ Tests: `npm test`. To include the full API journey: `TEST_DATABASE_URL=postgres:
 
 The server already runs the ScootHero back office. This app sits beside it on port 3100 with its own database (`feest_backoffice`), PM2 process (`feest-backoffice`) and Nginx site.
 
-1. Point the DNS A record for the back-office domain (for example `backoffice.feest.co.za`) at the server.
+1. Point the DNS A record for the back-office domain (for example `delivery-test.scoothero.co.za`) at the server.
 2. On the server, as root, from a checkout of this repo:
-   `DOMAIN=backoffice.feest.co.za EMAIL=you@example.com bash deploy/add-to-server.sh`
+   `DOMAIN=delivery-test.scoothero.co.za EMAIL=you@example.com bash deploy/add-to-server.sh`
 3. Add the deploy key it prints to this repo (Settings → Deploy keys, read-only).
 4. Add GitHub Actions secrets `SSH_HOST`, `SSH_USER` (`deploy`), `SSH_KEY`.
 5. Push to `main`. Then create the first login with `scripts/create-user.js` (the setup script prints the command).

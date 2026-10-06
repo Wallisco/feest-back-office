@@ -2,10 +2,10 @@
 # One-time: add the FEEST back office to the ScootHero HostyAfrica VPS, which already has
 # Node 22, PM2, Nginx, Postgres, certbot and the deploy user (from ScootHero's server-setup.sh).
 # Run as root from a checkout of this repo:
-#   DOMAIN=backoffice.feest.co.za EMAIL=wahlied@quikr.co.za bash deploy/add-to-server.sh
+#   DOMAIN=delivery-test.scoothero.co.za EMAIL=wahlied@quikr.co.za bash deploy/add-to-server.sh
 set -euo pipefail
 
-: "${DOMAIN:?Set DOMAIN, e.g. backoffice.feest.co.za}"
+: "${DOMAIN:?Set DOMAIN, e.g. delivery-test.scoothero.co.za}"
 : "${EMAIL:?Set EMAIL for the SSL certificate}"
 APP=feest-backoffice
 APP_USER=deploy
@@ -83,4 +83,4 @@ cat $KEY.pub
 echo "  2. In the repo's GitHub Actions secrets set SSH_HOST, SSH_USER=deploy and SSH_KEY"
 echo "     (the same Actions key the ScootHero back office uses is fine)."
 echo "  3. Push to main. After the first deploy, create the first login:"
-echo "     sudo -u $APP_USER bash -c 'cd $BASE/current && set -a && . ../shared/.env && node scripts/create-user.js --name \"Wahlied Cole\" --email you@feest.co.za --role ceo'"
+echo "     sudo -u $APP_USER bash -c 'cd $BASE/current && set -a && . ../shared/.env && node scripts/create-user.js --name \"Wahlied Cole\" --email wahlied@scoothero.co.za --role ceo'"
