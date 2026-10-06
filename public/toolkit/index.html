@@ -163,6 +163,30 @@ textarea.fallback { width: 100%; min-height: 120px; font: 13px var(--mono); bord
 .steps span { font-size: 14px; color: var(--muted); }
 .check { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; min-height: 32px; }
 .check input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--violet); }
+/* price check (Compare, step 0) */
+.pc-panel { grid-column: 1 / -1; border: 2px solid var(--violet); }
+.pc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.pc-head > div { min-width: 0; flex: 1 1 320px; }
+.pc-badge { font: 700 12px var(--mono); letter-spacing: .06em; text-transform: uppercase; padding: 6px 10px; border-radius: 999px; background: var(--warn-bg); color: var(--warn-ink); white-space: nowrap; }
+.pc-badge.on { background: var(--good-bg); color: var(--good-ink); }
+.pc-steps { grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); }
+.pc-steps li { background: var(--bg); padding: 12px 14px 14px; }
+.pc-steps b { font-size: 15px; }
+.pc-steps span { font-size: 13px; }
+.pc-table { min-width: 640px; }
+.pc-table td { padding: 5px 6px; }
+.pc-table td:first-child { min-width: 220px; font-size: 14px; }
+.pc-table td:first-child small { display: block; color: var(--muted); font-size: 12px; }
+.pc-table .inp { min-height: 40px; }
+.pc-table .inp input { font-size: 15px; }
+.pc-table tr.pc-sub td { background: var(--bg); }
+.pc-table tfoot th { font: 700 15px var(--mono); color: var(--ink); text-transform: none; letter-spacing: 0; text-align: right; padding: 10px 6px; border-top: 2px solid var(--line); border-bottom: 0; }
+.pc-table tfoot th:first-child { text-align: left; font-family: var(--body); }
+.pc-results .stat.on { background: var(--good-bg); }
+.pc-results .stat.on .k, .pc-results .stat.on .s, .pc-results .stat.on .v { color: var(--good-ink); }
+.inp.measured { border-color: var(--good-ink); background: var(--good-bg); }
+.inp.measured input { color: var(--good-ink); }
+.mtag { font-family: var(--mono); font-size: 10px; letter-spacing: .08em; background: var(--good-bg); color: var(--good-ink); padding: 2px 6px; border-radius: 4px; margin-left: 4px; vertical-align: 2px; white-space: nowrap; }
 </style>
 
 <div class="wrap">
@@ -182,6 +206,49 @@ textarea.fallback { width: 100%; min-height: 120px; font: 13px var(--mono); bord
 
   <!-- ============ COMPARE ============ -->
   <section id="view-compare" role="tabpanel" aria-labelledby="tab-compare" class="grid">
+    <div class="panel pc-panel" id="pricecheck">
+      <div class="pc-head">
+        <div>
+          <div class="eyebrow">Start here · in store, before the pitch</div>
+          <h2>Price check on their best sellers</h2>
+          <p class="lede" style="margin:4px 0 0">Measure what their customers actually pay on Uber Eats and Mr D, on your phone, while you sit with the manager. These numbers replace the estimates below and set every figure in the comparison.</p>
+        </div>
+        <span class="pc-badge" id="pc-badge">Using estimates</span>
+      </div>
+      <ol class="steps pc-steps">
+        <li><b>Ask the manager</b><span>"What are your 3 best-selling items?" Write them in below.</span></li>
+        <li><b>Take the in-store price</b><span>From the menu board or till, for each item.</span></li>
+        <li><b>Check both apps</b><span>On your phone, set the delivery address to a street about 3 km away. Open this store on Uber Eats and Mr D and note each item's app price. Leave a cell blank if the item isn't listed.</span></li>
+        <li><b>Go to checkout, don't pay</b><span>Add all 3 items on each app and open checkout. Enter the delivery fee, service fee and any small-order fee exactly as shown.</span></li>
+        <li><b>Screenshot both checkouts</b><span>Show the manager their own food on screen. Save the screenshots to the lead.</span></li>
+        <li><b>Ask what they pay</b><span>"What commission do the apps take?" If they tell you, enter it. If not, we keep the reported estimate.</span></li>
+      </ol>
+      <div class="tablewrap">
+        <table class="pc-table" id="pc-items">
+          <thead><tr><th>Best seller</th><th>In store</th><th>Uber Eats app</th><th>Mr D app</th></tr></thead>
+          <tbody>
+            <tr><td><div class="inp text"><input id="pc-n1" type="text" placeholder="Item 1, e.g. Full chicken & chips" aria-label="Best seller 1"></div></td><td><div class="inp"><span>R</span><input id="pc-s1" type="number" inputmode="decimal" min="0" step="0.5" aria-label="Item 1 in-store price"></div></td><td><div class="inp"><span>R</span><input id="pc-u1" type="number" inputmode="decimal" min="0" step="0.5" aria-label="Item 1 Uber Eats price"></div></td><td><div class="inp"><span>R</span><input id="pc-d1" type="number" inputmode="decimal" min="0" step="0.5" aria-label="Item 1 Mr D price"></div></td></tr>
+            <tr><td><div class="inp text"><input id="pc-n2" type="text" placeholder="Item 2" aria-label="Best seller 2"></div></td><td><div class="inp"><span>R</span><input id="pc-s2" type="number" inputmode="decimal" min="0" step="0.5" aria-label="Item 2 in-store price"></div></td><td><div class="inp"><span>R</span><input id="pc-u2" type="number" inputmode="decimal" min="0" step="0.5" aria-label="Item 2 Uber Eats price"></div></td><td><div class="inp"><span>R</span><input id="pc-d2" type="number" inputmode="decimal" min="0" step="0.5" aria-label="Item 2 Mr D price"></div></td></tr>
+            <tr><td><div class="inp text"><input id="pc-n3" type="text" placeholder="Item 3" aria-label="Best seller 3"></div></td><td><div class="inp"><span>R</span><input id="pc-s3" type="number" inputmode="decimal" min="0" step="0.5" aria-label="Item 3 in-store price"></div></td><td><div class="inp"><span>R</span><input id="pc-u3" type="number" inputmode="decimal" min="0" step="0.5" aria-label="Item 3 Uber Eats price"></div></td><td><div class="inp"><span>R</span><input id="pc-d3" type="number" inputmode="decimal" min="0" step="0.5" aria-label="Item 3 Mr D price"></div></td></tr>
+            <tr class="pc-sub"><td>At checkout: delivery fee</td><td>–</td><td><div class="inp"><span>R</span><input id="pc-udel" type="number" inputmode="decimal" min="0" step="0.5" aria-label="Uber Eats delivery fee"></div></td><td><div class="inp"><span>R</span><input id="pc-ddel" type="number" inputmode="decimal" min="0" step="0.5" aria-label="Mr D delivery fee"></div></td></tr>
+            <tr class="pc-sub"><td>At checkout: service fee</td><td>–</td><td><div class="inp"><span>R</span><input id="pc-usvc" type="number" inputmode="decimal" min="0" step="0.5" aria-label="Uber Eats service fee"></div></td><td><div class="inp"><span>R</span><input id="pc-dsvc" type="number" inputmode="decimal" min="0" step="0.5" aria-label="Mr D service fee"></div></td></tr>
+            <tr class="pc-sub"><td>At checkout: small-order fee<small>Enter 0 if none</small></td><td>–</td><td><div class="inp"><span>R</span><input id="pc-usof" type="number" inputmode="decimal" min="0" step="0.5" aria-label="Uber Eats small order fee"></div></td><td><div class="inp"><span>R</span><input id="pc-dsof" type="number" inputmode="decimal" min="0" step="0.5" aria-label="Mr D small order fee"></div></td></tr>
+            <tr class="pc-sub"><td>Commission they pay<small>Ask the manager</small></td><td>–</td><td><div class="inp"><input id="pc-ucom" type="number" inputmode="decimal" min="0" max="100" step="1" aria-label="Uber Eats commission"><span>%</span></div></td><td><div class="inp"><input id="pc-dcom" type="number" inputmode="decimal" min="0" max="100" step="1" aria-label="Mr D commission"><span>%</span></div></td></tr>
+          </tbody>
+          <tfoot><tr><th>Basket of 3, customer pays</th><th id="pc-ts">–</th><th id="pc-tu">–</th><th id="pc-td">–</th></tr></tfoot>
+        </table>
+      </div>
+      <div class="hero pc-results">
+        <div class="stat"><div class="k">Uber Eats menu markup, measured</div><div class="v" id="pc-umk">–</div><div class="s" id="pc-umk-s">Enter in-store and app prices</div></div>
+        <div class="stat"><div class="k">Mr D menu markup, measured</div><div class="v" id="pc-dmk">–</div><div class="s" id="pc-dmk-s">Enter in-store and app prices</div></div>
+      </div>
+      <div class="actions">
+        <label class="check" style="min-height:44px;align-items:center"><input type="checkbox" id="pc-basket"> Use this basket as the order value in the comparison</label>
+        <button class="btn ghost small" id="pc-clear" type="button">Clear and go back to estimates</button>
+      </div>
+      <p class="src" id="pc-note">Markup is measured only on items listed on that app. Fees come straight from the checkout screen. Anything left blank keeps the reported estimate.</p>
+    </div>
+
     <div class="panel">
       <h2>The restaurant's order</h2>
       <div class="group">
@@ -223,7 +290,7 @@ textarea.fallback { width: 100%; min-height: 120px; font: 13px var(--mono); bord
           <div class="field"><label for="d-thr">…on app orders under</label><div class="inp"><span>R</span><input id="d-thr" type="number" inputmode="decimal" min="0" step="10" value="0"></div></div>
         </div>
       </details>
-      <p class="src">Uber Eats and Mr D don't publish their SA commissions. Defaults are estimates from press tests and reports: <a href="https://mybroadband.co.za/news/it-services/599120-hidden-price-increase-when-buying-food-through-mr-d-and-uber-eats.html" target="_blank" rel="noopener">MyBroadband, Jun 2025 (markups)</a>, <a href="https://www.financialmail.businessday.co.za/features/2025-11-27-why-your-delivered-meals-and-groceries-cost-more-than-you-think/" target="_blank" rel="noopener">Financial Mail, Nov 2025 (commissions)</a>, <a href="https://mybroadband.co.za/news/it-services/554132-we-raced-uber-eats-and-mr-d-to-kfc-and-back.html" target="_blank" rel="noopener">MyBroadband, Aug 2024 (fees)</a>, <a href="https://mybroadband.co.za/news/it-services/528749-mr-d-beats-uber-eats-in-food-delivery-price-shootout.html" target="_blank" rel="noopener">MyBroadband, Mar 2024 (fees)</a>, <a href="https://wanguapp.com/blog/uber-eats-fees-south-africa" target="_blank" rel="noopener">Wangu, Mar 2026 (commissions)</a>. Ask each restaurant for its real rates.</p>
+      <p class="src">Uber Eats and Mr D don't publish their SA commissions. Defaults are estimates from press tests and reports: <a href="https://mybroadband.co.za/news/it-services/599120-hidden-price-increase-when-buying-food-through-mr-d-and-uber-eats.html" target="_blank" rel="noopener">MyBroadband, Jun 2025 (markups)</a>, <a href="https://www.financialmail.businessday.co.za/features/2025-11-27-why-your-delivered-meals-and-groceries-cost-more-than-you-think/" target="_blank" rel="noopener">Financial Mail, Nov 2025 (commissions)</a>, <a href="https://mybroadband.co.za/news/it-services/554132-we-raced-uber-eats-and-mr-d-to-kfc-and-back.html" target="_blank" rel="noopener">MyBroadband, Aug 2024 (fees)</a>, <a href="https://mybroadband.co.za/news/it-services/528749-mr-d-beats-uber-eats-in-food-delivery-price-shootout.html" target="_blank" rel="noopener">MyBroadband, Mar 2024 (fees)</a>, <a href="https://wanguapp.com/blog/uber-eats-fees-south-africa" target="_blank" rel="noopener">Wangu, Mar 2026 (commissions)</a>. The in-store price check above replaces these with the restaurant's real numbers.</p>
     </div>
 
     <div class="panel" aria-live="polite">
@@ -308,7 +375,8 @@ textarea.fallback { width: 100%; min-height: 120px; font: 13px var(--mono); bord
       <h2>Sign-up in one visit</h2>
       <ol class="steps">
         <li><b>Qualify</b><span>Owner or manager present? Do they deliver today, and through which apps?</span></li>
-        <li><b>Run the numbers</b><span>Compare tab with their order value, orders a day and app rates.</span></li>
+        <li><b>Price check</b><span>Ask for their 3 best sellers, then check them on Uber Eats and Mr D through to checkout. Compare tab, top panel.</span></li>
+        <li><b>Run the numbers</b><span>The measured markups and fees feed the comparison. Add order value and orders a day.</span></li>
         <li><b>Build their kit</b><span>Brand kit tab: their logo on the bike, door, seal and status.</span></li>
         <li><b>Sign</b><span>Agreement, fee tier, banking, order WhatsApp number, logo file.</span></li>
         <li><b>Onboard</b><span>Office loads the menu, sets payouts and Google profile within [5] days.</span></li>
@@ -457,7 +525,92 @@ textarea.fallback { width: 100%; min-height: 120px; font: 13px var(--mono); bord
   segs("[data-proc]", "data-proc", "procBy");
   segs("[data-way]", "data-way", "way");
 
+  /* ---------- in-store price check: measured numbers override the estimates ---------- */
+  var PC_TARGETS = ["m", "u-mk", "u-com", "u-del", "u-svc", "u-sof", "u-thr", "d-mk", "d-com", "d-del", "d-svc", "d-sof", "d-thr"];
+  var pcDefaults = {}, pcMeasured = {}, pcText = "";
+  PC_TARGETS.forEach(function (id) { pcDefaults[id] = $(id).value; });
+  var pcInputs = Array.prototype.slice.call(document.querySelectorAll("#pricecheck input"));
+  function pv(id) { var s = $(id).value; if (s === "") return null; var v = parseFloat(s); return isFinite(v) ? v : null; }
+  function setTarget(id, val) {
+    var el = $(id);
+    if (val === null || !isFinite(val)) { if (pcMeasured[id]) el.value = pcDefaults[id]; pcMeasured[id] = false; }
+    else { el.value = String(Math.round(val * 10) / 10); pcMeasured[id] = true; }
+    el.readOnly = !!pcMeasured[id];
+    el.parentNode.classList.toggle("measured", !!pcMeasured[id]);
+  }
+  function pct(v) { return (v >= 0 ? "+" : "−") + (Math.round(Math.abs(v) * 10) / 10) + "%"; }
+  function applyPriceCheck() {
+    var storeTotal = 0, names = [], i;
+    for (i = 1; i <= 3; i++) { var s0 = pv("pc-s" + i); if (s0 > 0) storeTotal += s0; }
+    var res = {};
+    ["u", "d"].forEach(function (p) {
+      var sIn = 0, app = 0, cnt = 0, listedOf = 0;
+      for (var j = 1; j <= 3; j++) {
+        var s = pv("pc-s" + j), a = pv("pc-" + p + j);
+        if (s > 0) listedOf++;
+        if (s > 0 && a > 0) { sIn += s; app += a; cnt++; }
+      }
+      var mk = cnt ? (app / sIn - 1) * 100 : null;
+      setTarget(p + "-mk", mk);
+      setTarget(p + "-com", pv("pc-" + p + "com"));
+      var del = pv("pc-" + p + "del"), svc = pv("pc-" + p + "svc"), sof = pv("pc-" + p + "sof");
+      setTarget(p + "-del", del);
+      setTarget(p + "-svc", svc !== null && app > 0 ? svc / app * 100 : null);
+      if (sof !== null && app > 0) { setTarget(p + "-sof", sof); setTarget(p + "-thr", sof > 0 ? Math.ceil(app) + 1 : 0); }
+      else { setTarget(p + "-sof", null); setTarget(p + "-thr", null); }
+      var total = cnt ? app + (del || 0) + (svc || 0) + (sof || 0) : null;
+      res[p] = { mk: mk, sIn: sIn, app: app, cnt: cnt, listedOf: listedOf, total: total, del: del, svc: svc, sof: sof };
+      var v = $("pc-" + p + "mk"), sl = $("pc-" + p + "mk-s");
+      v.textContent = mk === null ? "–" : pct(mk);
+      v.parentNode.classList.toggle("on", mk !== null);
+      sl.textContent = mk === null ? (listedOf ? "Enter the app prices" : "Enter in-store and app prices")
+        : R2(sIn) + " in store → " + R2(app) + " on the app" + (cnt < listedOf ? " (" + cnt + " of " + listedOf + " items listed)" : "");
+      var feesMissing = cnt && (del === null || svc === null || sof === null);
+      $("pc-t" + p).textContent = total === null ? "–" : R2(total) + (feesMissing ? "*" : "");
+    });
+    $("pc-ts").textContent = storeTotal > 0 ? R2(storeTotal) : "–";
+    setTarget("m", $("pc-basket").checked && storeTotal > 0 ? storeTotal : null);
+
+    var any = PC_TARGETS.some(function (id) { return id !== "m" && pcMeasured[id]; });
+    var b = $("pc-badge"); b.textContent = any ? "Measured in store" : "Using estimates"; b.classList.toggle("on", any);
+    ["u", "d"].forEach(function (p) {
+      var d = $(p + "-mk").closest("details");
+      if (["-mk", "-com", "-del", "-svc", "-sof"].some(function (s) { return pcMeasured[p + s]; })) d.open = true;
+    });
+    var miss = ["u", "d"].some(function (p) { return res[p].cnt && (res[p].del === null || res[p].svc === null || res[p].sof === null); });
+    $("pc-note").textContent = (miss ? "* Some checkout fees are still blank, so that total leaves them out. " : "") +
+      "Markup is measured only on items listed on that app. Fees come straight from the checkout screen. Anything left blank keeps the reported estimate. Measured fields show in green in the assumptions below.";
+
+    // WhatsApp text
+    pcText = "";
+    if (any) {
+      var lines = [];
+      for (i = 1; i <= 3; i++) {
+        var s = pv("pc-s" + i); if (!(s > 0)) continue;
+        var nm = $("pc-n" + i).value.trim() || ("Item " + i), u = pv("pc-u" + i), dd = pv("pc-d" + i);
+        lines.push("- " + nm + ": " + R2(s) + " in store, " + (u > 0 ? R2(u) : "not listed") + " on Uber Eats, " + (dd > 0 ? R2(dd) : "not listed") + " on Mr D");
+      }
+      pcText = "Checked in your store today, on your best sellers:\n" + lines.join("\n") + "\n" +
+        (res.u.mk !== null ? "Uber Eats menu prices: " + pct(res.u.mk) + " vs your counter\n" : "") +
+        (res.d.mk !== null ? "Mr D menu prices: " + pct(res.d.mk) + " vs your counter\n" : "") +
+        "Basket at checkout: " + R2(storeTotal) + " in store" +
+        (res.u.total !== null ? ", " + R2(res.u.total) + " on Uber Eats" : "") +
+        (res.d.total !== null ? ", " + R2(res.d.total) + " on Mr D" : "") + "\n\n";
+    }
+    try { localStorage.setItem("feest-pc", JSON.stringify(pcInputs.map(function (el) { return el.type === "checkbox" ? el.checked : el.value; }))); } catch (e) {}
+  }
+  (function restorePC() {
+    var saved = null; try { saved = JSON.parse(localStorage.getItem("feest-pc")); } catch (e) {}
+    if (saved && saved.length === pcInputs.length) pcInputs.forEach(function (el, k) { if (el.type === "checkbox") el.checked = !!saved[k]; else el.value = saved[k] == null ? "" : saved[k]; });
+  })();
+  $("pc-basket").addEventListener("change", function () { renderCompare(); });
+  $("pc-clear").addEventListener("click", function () {
+    pcInputs.forEach(function (el) { if (el.type === "checkbox") el.checked = false; else el.value = ""; });
+    renderCompare();
+  });
+
   function renderCompare() {
+    applyPriceCheck();
     var M = num("m"), n = num("opd") * num("days"), cpay = num("cpay");
     var uber = marketplace({ mk: num("u-mk"), com: num("u-com"), del: num("u-del"), svc: num("u-svc"), sof: num("u-sof"), thr: num("u-thr") }, M, cpay);
     var mrd = marketplace({ mk: num("d-mk"), com: num("d-com"), del: num("d-del"), svc: num("d-svc"), sof: num("d-sof"), thr: num("d-thr") }, M, cpay);
@@ -508,7 +661,7 @@ textarea.fallback { width: 100%; min-height: 120px; font: 13px var(--mono); bord
     if (losing.length) { w.hidden = false; w.textContent = "FEEST loses money per order at " + losing.map(function (c) { return c.name; }).join(", ") + ": fees don't cover courier pay and payment processing. Raise the delivery fee or lower courier pay."; }
     else w.hidden = true;
 
-    lastCmp = "Your restaurant on FEEST vs the apps (estimate)\n" +
+    lastCmp = pcText + "Your restaurant on FEEST vs the apps (" + (pcText ? "using today's prices" : "estimate") + ")\n" +
       "Order of " + R(M) + " at your menu prices, " + num("opd") + " orders/day\n\n" +
       "Uber Eats: customer pays " + R2(uber.cust) + ", you get " + R2(uber.rest) + "\n" +
       "Mr D: customer pays " + R2(mrd.cust) + ", you get " + R2(mrd.rest) + "\n" +
@@ -720,6 +873,7 @@ textarea.fallback { width: 100%; min-height: 120px; font: 13px var(--mono); bord
       "Order WhatsApp: " + $("k-wa").value + "\n" +
       "Fee tier: " + Math.round(state.tier * 100) + "% (" + (state.payer === "customer" ? "customer pays" : "restaurant pays") + ")\n" +
       "Avg order " + R(num("m")) + ", " + num("opd") + " orders/day\n" +
+      "Price check: Uber Eats " + ($("pc-umk").textContent) + ", Mr D " + ($("pc-dmk").textContent) + " vs in store\n" +
       "Bike colourway: option " + state.way + "\n" +
       "Checklist: " + Array.prototype.filter.call(document.querySelectorAll("#s-checks input"), function (c) { return c.checked; }).length + "/10 done\n" +
       "Next: " + $("s-next").value;
