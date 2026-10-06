@@ -1,8 +1,10 @@
 FEEST Back Office — instructions for Claude Code
-Read this before every task. It follows the ScootHero Back Office (github.com/Wallisco/Scoothero_Back_Office): same stack, same rules, same look, FEEST branding.
+Read this before every task. The full product spec is `docs/feest-spec.md`; the step-by-step build prompts are `docs/claude-code-playbook.md`. It follows the ScootHero Back Office (github.com/Wallisco/Scoothero_Back_Office): same stack, same rules, same method, FEEST branding.
 
 What this is
-The FEEST back office for vendors: anyone who sells to their customers through FEEST (restaurants, grocers, hardware stores, pharmacies, couriers). One app, `server.js` at the repo root: Node 22, Express 5, Postgres, express-session with connect-pg-simple. Hosted on the ScootHero HostyAfrica VPS beside the ScootHero back office (port 3100, its own database and PM2 process), deployed from GitHub Actions over SSH (`deploy/`). The public Sales Toolkit is served at `/toolkit`.
+The one FEEST back office (Habibi was the working name; there is no separate Habibi back office). One login, one Postgres database, modules: Overview, Vendors (built), Operations, Drivers, Pricing, Payouts, Metrics, Integration, Setup. One app, `server.js` at the repo root: Node 22, Express 5, Postgres, express-session with connect-pg-simple. Hosted on the ScootHero HostyAfrica VPS beside the ScootHero back office (port 3100, its own database and PM2 process), deployed from GitHub Actions over SSH (`deploy/`). The public Sales Toolkit is served at `/toolkit`.
+
+The dispatch engine is a separate service (repo Wallisco/habibi-delivery, Fastify, habibi-api.quikr.co.za). It owns live orders, offers, driver state, the ready gate, stacking and driver pay. This back office talks to it only server-to-server through src/lib/dispatch.js with the service key, and builds its own history from the dispatch event feed.
 
 The vendor journey (stages are derived, see src/vendors/stages.js)
 1. Areas and reps: sales leads allocate reps to areas.
@@ -20,6 +22,12 @@ Stages change only through the actions in src/vendors/routes.js, via restage(). 
 Money comes only from src/vendors/finance.js, which the browser loads unchanged at /static/finance.js. Never recalculate fees, the toolkit comparison or the pack cost anywhere else.
 The installation checklist comes only from src/vendors/checklist.js (also served to the browser).
 Signed agreements are immutable: services and toolkit are locked while an agreement is active; to change terms, void (only before the owner signs off) and sign again.
+Dispatch: staff never call dispatch from the browser. Every call goes through src/lib/dispatch.js with DISPATCH_SERVICE_KEY, and every action sent to dispatch is written to audit_log here first.
+Reports and metrics read Postgres (order_facts, order_segments), never live dispatch queries. Segment maths lives only in src/metrics/segments.js; a missing timestamp is "Not measured", never zero.
+Driver pay is calculated only by dispatch (fees.js). The back office shows it, adjusts it through ledger entries with a reason, and never recalculates it.
+Payouts: the person who prepares a payout run can't approve it. Wallet transfers go only through src/lib/wallet, each with an idempotency key, so a retry never pays twice.
+Pricing changes (zones, rate cards, surge, stacking rules) are saved only by ops_lead, ceo or admin, after a preview, and keep history.
+Customer address and phone stay hidden until a user reveals them for a reason; the reveal is logged. Driver positions are never stored here.
 Typography comes only from src/styles/typography.css tokens. No hard-coded px font sizes.
 Files go through src/lib/storage (STORAGE_DIR, outside the web root) and are streamed by the role-checked /files route.
 Personal information (POPIA): no owner, customer or staff data in logs or error messages.

@@ -1,8 +1,14 @@
 # FEEST Back Office
 
-The back office for FEEST vendors, built on the ScootHero Back Office structure and look, with FEEST branding.
+The one FEEST back office: vendors, operations, drivers, pricing, payouts and metrics. Built the same way as the ScootHero Back Office (spec, CLAUDE.md, a step-by-step Claude Code playbook), with FEEST branding. Habibi was the working name for the same platform.
 
-**Areas and reps → capture a vendor → model and services → sales toolkit → agreement signed on screen → pack emailed for sign-off → installation → live.**
+- **Spec:** `docs/feest-spec.md`
+- **Build steps for Claude Code:** `docs/claude-code-playbook.md` (one session per step, plan mode first)
+- **Rules:** `CLAUDE.md`
+
+**Built:** the Vendors module. Areas and reps → capture a vendor → model and services → sales toolkit → agreement signed on screen → pack emailed for sign-off → installation → live.
+
+**Next (playbook steps 0–10):** module switcher and roles, server, dispatch service key and event feed, Operations, live map, Drivers, Pricing zones, Metrics for the ten order segments, vendor go-live into dispatch, weekly payouts to the Altron wallet, Overview, and retiring ops.html.
 
 Vendors are anyone who needs their menu or catalogue in front of their customers: restaurants, takeaways, grocers, hardware stores, pharmacies, butcheries, couriers. Categories are editable in Setup.
 
