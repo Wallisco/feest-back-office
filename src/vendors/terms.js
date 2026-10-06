@@ -27,13 +27,24 @@ function termsFor(v, settings) {
     services: F.SERVICES.filter((x) => s[x.key]).map((x) => x.label),
     tier: Number(t.tier), paidBy: t.paidBy === 'vendor' ? 'vendor' : 'customer',
     delivery: !!s.delivery, deliveryFee: Number(t.delivery) || 0,
-    toolkit: s.delivery ? Object.assign({ aov: Number(t.aov), opd: Number(t.opd), days: Number(t.days) }, F.compare(t)) : null,
+    toolkit: s.delivery ? F.toolkitResult(t) : null,
     pack, social: !!s.social,
   };
 }
 
 const R = (n, dp = 0) => 'R ' + Number(n || 0).toLocaleString('en-ZA', { minimumFractionDigits: dp, maximumFractionDigits: dp }).replace(/ /g, ' ');
 const fmtD = (d) => { if (!d) return ''; const x = new Date(typeof d === 'string' && d.length === 10 ? d + 'T12:00:00Z' : d); return x.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Africa/Johannesburg' }); };
+
+/** The price check in plain lines, for the email (the PDF draws its own table). */
+function priceCheckLines(k) {
+  if (!k || !k.measured) return [];
+  const pc = k.priceCheck, out = ['', `Prices we checked together${pc.checkedOn ? ' on ' + fmtD(pc.checkedOn) : ''}:`];
+  pc.items.filter((i) => i.store > 0).forEach((i) => {
+    out.push(`- ${i.name || 'Item'}: ${R(i.store, 2)} in store, ${i.ue > 0 ? R(i.ue, 2) : 'not listed'} on Uber Eats, ${i.mrd > 0 ? R(i.mrd, 2) : 'not listed'} on Mr D`);
+  });
+  F.APPS.forEach((a) => { const x = pc.apps[a.key]; if (x.cnt) out.push(`- ${a.label}: menu prices ${x.markup >= 0 ? '+' : ''}${x.markup}% vs your counter; ${R(x.total, 2)} at checkout for the basket`); });
+  return out;
+}
 
 function packEmail(ag) {
   const T = ag.terms;
@@ -48,7 +59,8 @@ function packEmail(ag) {
     T.delivery ? `- Delivery: ${T.model}, ${R(T.deliveryFee)} delivery fee charged to the customer` : '- No delivery: pickup and in-store ordering',
     `- Services: ${T.services.join(', ')}`,
     `- Installation pack: ${R(T.pack.total, 2)} incl. VAT${T.social ? `, including ${R(T.pack.social)} social media setup` : ''}`,
-    T.toolkit ? `- Estimate: you keep about ${R(T.toolkit.monthGain)} more a month than on the apps` : null, '',
+    T.toolkit ? `- Estimate: you keep about ${R(T.toolkit.monthGain)} more a month than on ${T.toolkit.gainApp}` : null,
+    ...priceCheckLines(T.toolkit), '',
     'Please reply "I confirm" to accept the agreement. We will then order your print and set up your WhatsApp ordering before the start date.', '',
     'Kind regards,', ag.rep_name, 'FEEST',
   ].filter((x) => x !== null);

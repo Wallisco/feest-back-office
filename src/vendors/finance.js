@@ -67,7 +67,7 @@
   function compare(t) {
     const aov = num(t.aov), markup = num(t.markup) / 100, comm = num(t.commission) / 100;
     const appMenu = aov * (1 + markup);
-    const appCustomer = appMenu + num(t.appDelivery) + appMenu * num(t.appService) / 100;
+    const appCustomer = appMenu + num(t.appDelivery) + appMenu * num(t.appService) / 100 + num(t.appSmallOrder);
     const appVendor = appMenu * (1 - comm);
     const fee = aov * num(t.tier) / 100;
     const custPays = t.paidBy !== 'vendor';
@@ -80,6 +80,88 @@
       vendorGainPerOrder: round2(feestVendor - appVendor), customerSavePerOrder: round2(appCustomer - feestCustomer),
       monthOrders, monthGain: round2((feestVendor - appVendor) * monthOrders), monthFeeFeest: round2(fee * monthOrders),
     };
+  }
+
+
+  /* ---------- in-store price check ----------
+   * The rep asks the manager for their 3 best sellers, takes the counter price, and checks
+   * each on Uber Eats and Mr D through to checkout (without paying). Measured numbers replace
+   * the press estimates, per app. pc: { items: [{name, store, ue, mrd}] x3,
+   *   ue: {del, svc, sof, com}, mrd: {del, svc, sof, com}, useBasket }
+   * Fees are rand amounts from the checkout screen; com is the % the manager says they pay.
+   */
+  const APPS = [{ key: 'ue', label: 'Uber Eats' }, { key: 'mrd', label: 'Mr D' }];
+  const val = (v) => { if (v === '' || v === null || v === undefined) return null; const x = parseFloat(v); return Number.isFinite(x) ? x : null; };
+  const round1 = (n) => Math.round(n * 10) / 10;
+
+  function priceCheck(pc) {
+    pc = pc || {};
+    const items = (Array.isArray(pc.items) ? pc.items : []).slice(0, 3);
+    let storeTotal = 0;
+    items.forEach((i) => { const s = val(i && i.store); if (s > 0) storeTotal += s; });
+    const apps = {};
+    APPS.forEach(({ key, label }) => {
+      let sIn = 0, app = 0, cnt = 0, listedOf = 0;
+      items.forEach((i) => {
+        const s = val(i && i.store), a = val(i && i[key]);
+        if (s > 0) listedOf++;
+        if (s > 0 && a > 0) { sIn += s; app += a; cnt++; }
+      });
+      const f = pc[key] || {};
+      const del = val(f.del), svc = val(f.svc), sof = val(f.sof), com = val(f.com);
+      const total = cnt ? app + (del || 0) + (svc || 0) + (sof || 0) : null;
+      apps[key] = {
+        key, label, cnt, listedOf, storeSub: round2(sIn), appSub: round2(app),
+        markup: cnt ? round1((app / sIn - 1) * 100) : null,
+        del, svc, sof, com,
+        servicePct: svc !== null && app > 0 ? round2(svc / app * 100) : null,
+        total: total === null ? null : round2(total),
+        feesComplete: del !== null && svc !== null && sof !== null,
+      };
+    });
+    const measured = APPS.some((a) => apps[a.key].cnt > 0);
+    return { storeTotal: round2(storeTotal), apps, measured, useBasket: !!pc.useBasket && storeTotal > 0, checkedOn: pc.checkedOn || null,
+             items: items.map((i) => ({ name: String((i && i.name) || '').trim(), store: val(i && i.store), ue: val(i && i.ue), mrd: val(i && i.mrd) })) };
+  }
+
+  /** The toolkit for one app: measured values where the rep has them, the estimate otherwise. */
+  function appToolkit(t, a) {
+    return Object.assign({}, t, {
+      markup: a.markup !== null ? a.markup : t.markup,
+      commission: a.com !== null ? a.com : t.commission,
+      appDelivery: a.del !== null ? a.del : t.appDelivery,
+      appService: a.servicePct !== null ? a.servicePct : t.appService,
+      appSmallOrder: a.sof !== null ? a.sof : 0,
+    });
+  }
+
+  /**
+   * The toolkit result used everywhere (screen, agreement terms, PDF, dashboard).
+   * Without a price check: compare(t) on the estimates. With one: compare against each measured
+   * app, and the headline takes the smaller vendor gain and the smaller customer saving, so
+   * neither number is ever overstated.
+   */
+  function toolkitResult(t) {
+    const pc = priceCheck(t && t.priceCheck);
+    const base = Object.assign({}, t);
+    if (pc.useBasket) base.aov = pc.storeTotal;
+    const head = { aov: num(base.aov), opd: num(base.opd), days: num(base.days) };
+    if (!pc.measured) {
+      const c = compare(base);
+      return Object.assign(head, c, { measured: false, priceCheck: null, apps: [{ key: 'est', label: 'Uber Eats / Mr D', estimate: true, c }],
+                                      gainApp: 'Uber Eats / Mr D', saveApp: 'Uber Eats / Mr D' });
+    }
+    const rows = APPS.filter((a) => pc.apps[a.key].cnt > 0).map((a) => {
+      const x = appToolkit(base, pc.apps[a.key]);
+      return { key: a.key, label: a.label, estimate: false, c: compare(x), t: x };
+    });
+    const gain = rows.reduce((b, r) => (r.c.vendorGainPerOrder < b.c.vendorGainPerOrder ? r : b));
+    const save = rows.reduce((b, r) => (r.c.customerSavePerOrder < b.c.customerSavePerOrder ? r : b));
+    return Object.assign(head, gain.c, {
+      customerSavePerOrder: save.c.customerSavePerOrder, appCustomer: save.c.appCustomer,
+      measured: true, priceCheck: pc, apps: rows.map((r) => ({ key: r.key, label: r.label, estimate: false, c: r.c })),
+      gainApp: gain.label, saveApp: save.label,
+    });
   }
 
   /** v: {model, services, ownDrivers, vehicles, tables, printQty} */
@@ -116,5 +198,5 @@
     return d.toISOString().slice(0, 10);
   }
 
-  return { DEFAULT_PRICING, DEFAULT_PRINT, MODELS, SERVICES, pricing, printList, toolkitDefaults, compare, printQty, packCost, defaultStartDate };
+  return { DEFAULT_PRICING, DEFAULT_PRINT, MODELS, SERVICES, APPS, pricing, printList, toolkitDefaults, compare, priceCheck, appToolkit, toolkitResult, printQty, packCost, defaultStartDate };
 });

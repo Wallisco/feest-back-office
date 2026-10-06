@@ -281,6 +281,17 @@ router.put('/vendors/:id/services', h(async (req, res) => {
 }));
 
 // ---------- sales toolkit ----------
+/** In-store price check from the toolkit screen: 3 items and each app's checkout fees. Blank stays blank (null). */
+function cleanPriceCheck(pc) {
+  const n = (v, max) => { if (v === '' || v === null || v === undefined) return null; const x = Number(v); return Number.isFinite(x) && x >= 0 && x <= max ? Math.round(x * 100) / 100 : null; };
+  const items = (Array.isArray(pc.items) ? pc.items : []).slice(0, 3).map((i) => ({
+    name: String((i && i.name) || '').trim().slice(0, 60), store: n(i && i.store, 100000), ue: n(i && i.ue, 100000), mrd: n(i && i.mrd, 100000),
+  }));
+  while (items.length < 3) items.push({ name: '', store: null, ue: null, mrd: null });
+  const fees = (f) => ({ del: n(f && f.del, 1000), svc: n(f && f.svc, 1000), sof: n(f && f.sof, 1000), com: n(f && f.com, 100) });
+  return { items, ue: fees(pc.ue), mrd: fees(pc.mrd), useBasket: !!pc.useBasket, checkedOn: new Date().toISOString().slice(0, 10) };
+}
+
 router.put('/vendors/:id/toolkit', h(async (req, res) => {
   await db.tx(async (c) => {
     const v = await loadVendor(c, req.params.id, true);
@@ -297,9 +308,10 @@ router.put('/vendors/:id/toolkit', h(async (req, res) => {
       markup: num(b.markup, 0, 200), commission: num(b.commission, 0, 100), appDelivery: num(b.appDelivery, 0, 1000), appService: num(b.appService, 0, 100),
       tier, paidBy: b.paidBy === 'vendor' ? 'vendor' : 'customer', delivery: num(b.delivery, 0, 1000),
     };
+    if (delivery && b.priceCheck) t.priceCheck = cleanPriceCheck(b.priceCheck);
     if (delivery && (!t.aov || !t.opd || !t.days)) throw bad('Enter the average order, orders a day and trading days.');
     const r = (await c.query(`UPDATE vendors SET toolkit=$2, toolkit_completed_at=COALESCE(toolkit_completed_at, now()), updated_at=now() WHERE id=$1 RETURNING *`, [v.id, t])).rows[0];
-    await audit(c, { actorId: req.user.id, action: 'vendor.toolkit', entity: 'vendor', entityId: v.id, before: v.toolkit, after: { ...t, result: delivery ? F.compare(t) : null }, ip: req.ip });
+    await audit(c, { actorId: req.user.id, action: 'vendor.toolkit', entity: 'vendor', entityId: v.id, before: v.toolkit, after: { ...t, result: delivery ? F.toolkitResult(t) : null }, ip: req.ip });
     await restage(c, v.id);
   });
   res.json({ ok: true });

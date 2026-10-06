@@ -85,15 +85,32 @@ function buildPackPdf(ag, sigs) {
 
     if (T.toolkit) {
       const k = T.toolkit;
+      if (k.measured) {
+        const pc = k.priceCheck;
+        h2('Prices we checked together');
+        doc.font('Helvetica').fontSize(10).fillColor(C.ink).text(`Your best sellers at your counter and on the apps${pc.checkedOn ? `, checked on ${fmtD(pc.checkedOn)}` : ''} (delivery address about 3 km away, taken to checkout without paying):`, M, doc.y, { width: IW });
+        doc.moveDown(0.4);
+        const px = [[M, 200], [M + 205, 95, 'right'], [M + 305, 95, 'right'], [M + 405, IW - 405, 'right']];
+        row(['Item', 'In store', 'Uber Eats', 'Mr D'], px, { bold: true, color: C.muted, size: 9 });
+        const cell = (x) => (x > 0 ? R(x, 2) : 'not listed');
+        pc.items.filter((i) => i.store > 0).forEach((i) => row([i.name || 'Item', R(i.store, 2), cell(i.ue), cell(i.mrd)], px));
+        const A = pc.apps, mk = (a) => (a.cnt ? `${a.markup >= 0 ? '+' : ''}${a.markup}%` : '–');
+        row(['Menu prices vs your counter', '', mk(A.ue), mk(A.mrd)], px, { bold: true });
+        const bt = (a) => (a.total === null ? '–' : R(a.total, 2) + (a.cnt < a.listedOf ? ` (${a.cnt} of ${a.listedOf})` : ''));
+        row(['Basket at checkout, with fees', R(pc.storeTotal, 2), bt(A.ue), bt(A.mrd)], px, { bold: true });
+        if (A.ue.cnt < A.ue.listedOf || A.mrd.cnt < A.mrd.listedOf) doc.font('Helvetica').fontSize(8.5).fillColor(C.muted).text('(1 of 2) means not every item is listed on that app, so its basket covers fewer items.', M, doc.y, { width: IW });
+      }
+      ensure(130);
       h2('Your numbers (estimate)');
-      doc.font('Helvetica').fontSize(10).fillColor(C.ink).text(`On a ${R(k.aov)} order at in-store prices, ${k.opd} delivery orders a day, ${k.days} trading days a month:`);
+      doc.font('Helvetica').fontSize(10).fillColor(C.ink).text(`On a ${R(k.aov)} order at in-store prices, ${k.opd} delivery orders a day, ${k.days} trading days a month${k.measured ? ', using the app prices and fees above' : ''}:`, M, doc.y, { width: IW });
       doc.moveDown(0.4);
-      const xs = [[M, 200], [M + 210, 120, 'right'], [M + 340, IW - 340, 'right']];
-      row(['', 'Uber Eats / Mr D', 'FEEST'], xs, { bold: true, color: C.muted, size: 9 });
-      row(['Customer pays', R(k.appCustomer, 2), R(k.feestCustomer, 2)], xs);
-      row(['You receive', R(k.appVendor, 2), R(k.feestVendor, 2)], xs);
+      const cols = k.apps.length + 1, first = 170, cw = (IW - first) / cols;
+      const xs = [[M, first]].concat(Array.from({ length: cols }, (_, j) => [M + first + j * cw, cw - 6, 'right']));
+      row([''].concat(k.apps.map((a) => a.label), ['FEEST']), xs, { bold: true, color: C.muted, size: 9 });
+      row(['Customer pays'].concat(k.apps.map((a) => R(a.c.appCustomer, 2)), [R(k.feestCustomer, 2)]), xs);
+      row(['You receive'].concat(k.apps.map((a) => R(a.c.appVendor, 2)), [R(k.feestVendor, 2)]), xs);
       doc.moveDown(0.3).font('Helvetica-Bold').fontSize(10.5).fillColor(C.violet)
-        .text(`You keep about ${R(k.monthGain)} more a month. This is an estimate on your own numbers, not a promise of order volumes.`, M, doc.y, { width: IW });
+        .text(`You keep about ${R(k.monthGain)} more a month than on ${k.gainApp}. This is an estimate on your own numbers, not a promise of order volumes.`, M, doc.y, { width: IW });
     }
 
     h2('Installation pack, at cost');

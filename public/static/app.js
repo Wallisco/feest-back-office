@@ -170,7 +170,7 @@ function viewDashboard() {
     const month = todayStr().slice(0, 7);
     const signedMonth = S.agreements.filter((a) => (a.signedAt || '').slice(0, 7) === month).length;
     const live = vs.filter((v) => v.stage === 'live');
-    const monthFees = live.reduce((a, v) => a + (v.toolkit && v.services && v.services.delivery ? F.compare(v.toolkit).monthFeeFeest : 0), 0);
+    const monthFees = live.reduce((a, v) => a + (v.toolkit && v.services && v.services.delivery ? F.toolkitResult(v.toolkit).monthFeeFeest : 0), 0);
     const installValue = vs.filter((v) => ['install', 'live'].includes(v.stage)).reduce((a, v) => a + F.packCost(v, S.settings.pricing, S.settings.print).sub, 0);
     const reps = sorted(S.users).map((u) => {
       const mine = vs.filter((v) => v.repId === u.id);
@@ -568,7 +568,35 @@ function viewToolkit(v) {
   const p = pricing();
   const t = Object.assign(F.toolkitDefaults(p), v.toolkit || {});
   const delivery = !!(v.services && v.services.delivery);
-  $('main').innerHTML = `<div class="wrap">${vendorHead(v, 'toolkit')}${signedLock(v)}
+  const pc0 = t.priceCheck || {}, pi = (i) => (pc0.items && pc0.items[i]) || {}, pf = (k) => pc0[k] || {};
+  const nv = (x) => (x === null || x === undefined ? '' : esc(x));
+  const money = (id, val, label) => `<div class="pcin"><span>R</span><input id="${id}" type="number" min="0" step="0.5" inputmode="decimal" value="${nv(val)}" aria-label="${label}"></div>`;
+  const pcCard = delivery ? `<form id="pcf" class="card pc" novalidate><fieldset ${ro ? 'disabled' : ''} style="border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:12px;min-width:0">
+      <div class="pchead"><div><div class="eyebrow">Start here · in store, before the pitch</div><h2>Price check on their best sellers</h2>
+        <p class="small">Measure what their customers actually pay on Uber Eats and Mr D, on your phone, with the manager. These numbers replace the estimates and set the comparison.</p></div>
+        <span class="pcbadge" id="pcBadge">Using estimates</span></div>
+      <ol class="pcsteps">
+        <li><b>Ask the manager</b> for their 3 best-selling items.</li>
+        <li><b>Take the in-store price</b> from the menu board or till.</li>
+        <li><b>Check both apps:</b> delivery address about 3 km away; note each item's app price. Blank if not listed.</li>
+        <li><b>Go to checkout, don't pay:</b> all 3 items; enter the delivery, service and small-order fees as shown.</li>
+        <li><b>Screenshot both checkouts</b> and show the manager their own food.</li>
+        <li><b>Ask what commission</b> they pay each app. Blank keeps the estimate.</li>
+      </ol>
+      <div class="tablewrap"><table class="pctable"><thead><tr><th>Best seller</th><th class="r">In store</th><th class="r">Uber Eats app</th><th class="r">Mr D app</th></tr></thead><tbody>
+        ${[0, 1, 2].map((i) => `<tr><td><input id="pc_n${i}" type="text" maxlength="60" placeholder="Item ${i + 1}${i ? '' : ', e.g. Full chicken & chips'}" value="${nv(pi(i).name)}" aria-label="Best seller ${i + 1}"></td>
+          <td>${money('pc_s' + i, pi(i).store, `Item ${i + 1} in store`)}</td><td>${money('pc_ue' + i, pi(i).ue, `Item ${i + 1} Uber Eats`)}</td><td>${money('pc_mrd' + i, pi(i).mrd, `Item ${i + 1} Mr D`)}</td></tr>`).join('')}
+        ${[['del', 'At checkout: delivery fee'], ['svc', 'At checkout: service fee'], ['sof', 'At checkout: small-order fee (0 if none)']].map(([k, l]) => `<tr class="sub"><td>${l}</td><td class="r muted">–</td>
+          <td>${money(`pc_ue_${k}`, pf('ue')[k], `Uber Eats ${l}`)}</td><td>${money(`pc_mrd_${k}`, pf('mrd')[k], `Mr D ${l}`)}</td></tr>`).join('')}
+        <tr class="sub"><td>Commission they pay (ask the manager)</td><td class="r muted">–</td>
+          <td><div class="pcin"><input id="pc_ue_com" type="number" min="0" max="100" step="1" inputmode="decimal" value="${nv(pf('ue').com)}" aria-label="Uber Eats commission"><span>%</span></div></td>
+          <td><div class="pcin"><input id="pc_mrd_com" type="number" min="0" max="100" step="1" inputmode="decimal" value="${nv(pf('mrd').com)}" aria-label="Mr D commission"><span>%</span></div></td></tr>
+      </tbody><tfoot><tr><th>Basket, customer pays</th><th class="r" id="pcTs">–</th><th class="r" id="pcTue">–</th><th class="r" id="pcTmrd">–</th></tr>
+        <tr><th>Menu prices vs their counter</th><th></th><th class="r" id="pcMue">–</th><th class="r" id="pcMmrd">–</th></tr></tfoot></table></div>
+      <label class="check"><input type="checkbox" id="pc_basket" ${pc0.useBasket ? 'checked' : ''}> Use this basket as the average order</label>
+      <p class="small" id="pcNote">Markup counts only items listed on that app. Fees come straight from the checkout screen. Anything blank keeps the estimate.</p>
+    </fieldset></form>` : '';
+  $('main').innerHTML = `<div class="wrap">${vendorHead(v, 'toolkit')}${signedLock(v)}${pcCard}
     <div class="grid2" style="align-items:start">
       <form id="tf" class="card" novalidate><fieldset ${ro ? 'disabled' : ''} style="border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:14px;min-width:0">
         <h2>${delivery ? 'Their numbers' : 'Fee'}</h2>
@@ -583,7 +611,7 @@ function viewToolkit(v) {
           <div class="field"><label for="t_comm">App commission %</label><input id="t_comm" type="number" min="0" step="1" value="${esc(t.commission)}"></div>
           <div class="field"><label for="t_appdel">App delivery fee (R)</label><input id="t_appdel" type="number" min="0" step="1" value="${esc(t.appDelivery)}"></div>
           <div class="field"><label for="t_appsvc">App service fee %</label><input id="t_appsvc" type="number" min="0" step="0.5" value="${esc(t.appService)}"></div>
-        </div><p class="small">Defaults are press-test estimates. Change them to what the owner says they pay.</p></details>` : ''}
+        </div><p class="small" id="estNote">Defaults are press-test estimates. The price check above replaces them for each app it covers.</p></details>` : ''}
         <div class="grid2">
           <div class="field"><label for="t_tier">FEEST service fee</label><select id="t_tier">${p.tiers.map((x) => `<option value="${x}" ${num(t.tier) === x ? 'selected' : ''}>${x}% of menu price</option>`).join('')}</select></div>
           <div class="field"><label for="t_paid">Fee paid by</label><select id="t_paid"><option value="customer">Customer</option><option value="vendor">Vendor</option></select></div>
@@ -600,26 +628,49 @@ function viewToolkit(v) {
   if ($('t_apps')) $('t_apps').value = t.apps;
   $('t_paid').value = t.paidBy;
   const g = (i, d) => ($(i) ? $(i).value : d);
+  const pcRead = () => (!delivery ? null : {
+    items: [0, 1, 2].map((i) => ({ name: $('pc_n' + i).value.trim(), store: $('pc_s' + i).value, ue: $('pc_ue' + i).value, mrd: $('pc_mrd' + i).value })),
+    ue: { del: $('pc_ue_del').value, svc: $('pc_ue_svc').value, sof: $('pc_ue_sof').value, com: $('pc_ue_com').value },
+    mrd: { del: $('pc_mrd_del').value, svc: $('pc_mrd_svc').value, sof: $('pc_mrd_sof').value, com: $('pc_mrd_com').value },
+    useBasket: $('pc_basket').checked, checkedOn: pc0.checkedOn });
   const read = () => ({ aov: num(g('t_aov', t.aov)), opd: num(g('t_opd', t.opd)), days: num(g('t_days', t.days)), apps: g('t_apps', t.apps),
     markup: num(g('t_markup', t.markup)), commission: num(g('t_comm', t.commission)), appDelivery: num(g('t_appdel', t.appDelivery)), appService: num(g('t_appsvc', t.appService)),
-    tier: num($('t_tier').value), paidBy: $('t_paid').value, delivery: num(g('t_del', t.delivery)) });
+    tier: num($('t_tier').value), paidBy: $('t_paid').value, delivery: num(g('t_del', t.delivery)), priceCheck: pcRead() });
+  function drawPc(r) {
+    const pc = F.priceCheck(read().priceCheck), A = pc.apps;
+    const mk = (a) => (a.cnt ? `${a.markup >= 0 ? '+' : ''}${a.markup}%${a.cnt < a.listedOf ? ` (${a.cnt} of ${a.listedOf})` : ''}` : '–');
+    const tot = (a) => (a.total === null ? '–' : R(a.total, 2) + (a.feesComplete ? '' : '*') + (a.cnt < a.listedOf ? ` (${a.cnt} of ${a.listedOf})` : ''));
+    $('pcTs').textContent = pc.storeTotal > 0 ? R(pc.storeTotal, 2) : '–';
+    $('pcTue').textContent = tot(A.ue); $('pcTmrd').textContent = tot(A.mrd);
+    $('pcMue').textContent = mk(A.ue); $('pcMmrd').textContent = mk(A.mrd);
+    $('pcBadge').textContent = pc.measured ? 'Measured in store' : 'Using estimates';
+    $('pcBadge').classList.toggle('on', pc.measured);
+    const miss = ['ue', 'mrd'].some((k) => A[k].cnt && !A[k].feesComplete);
+    $('pcNote').textContent = (miss ? '* Some checkout fees are blank, so that total leaves them out. ' : '') + 'Markup counts only items listed on that app. Fees come straight from the checkout screen. Anything blank keeps the estimate.';
+    if ($('t_aov')) { $('t_aov').readOnly = pc.useBasket; if (pc.useBasket) $('t_aov').value = pc.storeTotal; }
+    if ($('estNote')) $('estNote').textContent = pc.measured
+      ? `Measured in store for ${['ue', 'mrd'].filter((k) => A[k].cnt).map((k) => A[k].label).join(' and ')}. These estimates only fill what the price check left blank.`
+      : 'Defaults are press-test estimates. The price check above replaces them for each app it covers.';
+  }
   function drawCmp() {
-    const x = read(), c = F.compare(x);
+    if (delivery) drawPc();
+    const x = read(), c = F.toolkitResult(x);
     if (!delivery) { $('cmpHost').innerHTML = `<h2>Summary</h2><p>No delivery for this vendor. FEEST charges ${x.tier}% on menu price, paid by the ${esc(x.paidBy)}, on WhatsApp, pickup and table orders.</p>`; return; }
-    const appLabel = x.apps === 'none' ? 'If they joined the apps' : 'Uber Eats / Mr D';
-    $('cmpHost').innerHTML = `<h2>On a ${R(x.aov)} order</h2>
+    const appLabel = c.measured ? c.apps.map((a) => a.label).join(' / ') : (x.apps === 'none' ? 'If they joined the apps' : 'Uber Eats / Mr D');
+    $('cmpHost').innerHTML = `<h2>On a ${R(c.aov)} order${c.measured ? ', measured in store' : ''}</h2>
       <div class="cmp">
-        <div class="cmpcol"><div class="eyebrow">${esc(appLabel)}</div>
-          <div class="row"><span>Menu price on the app</span><b>${R(c.appMenu, 2)}</b></div>
-          <div class="row"><span>Customer pays</span><b>${R(c.appCustomer, 2)}</b></div>
-          <div class="row"><span>Vendor receives</span><b>${R(c.appVendor, 2)}</b></div></div>
+        ${c.apps.map((a) => `<div class="cmpcol"><div class="eyebrow">${esc(a.estimate ? appLabel : a.label)}${a.estimate ? ' (estimate)' : ''}</div>
+          <div class="row"><span>Menu price on the app</span><b>${R(a.c.appMenu, 2)}</b></div>
+          <div class="row"><span>Customer pays</span><b>${R(a.c.appCustomer, 2)}</b></div>
+          <div class="row"><span>Vendor receives</span><b>${R(a.c.appVendor, 2)}</b></div></div>`).join('')}
         <div class="cmpcol feest"><div class="eyebrow">FEEST at ${x.tier}%, fee paid by ${esc(x.paidBy)}</div>
-          <div class="row"><span>Menu price</span><b>${R(x.aov, 2)}</b></div>
+          <div class="row"><span>Menu price</span><b>${R(c.aov, 2)}</b></div>
           <div class="row"><span>Customer pays</span><b>${R(c.feestCustomer, 2)}</b></div>
           <div class="row"><span>Vendor receives</span><b>${R(c.feestVendor, 2)}</b></div></div>
       </div>
       <div class="callout ${c.monthGain >= 0 ? 'good' : 'warnc'}"><div class="small" style="color:inherit">Vendor keeps more each month</div><div class="big">${R(c.monthGain)}</div>
-        <div class="small" style="color:inherit">${R(c.vendorGainPerOrder, 2)} an order × ${c.monthOrders.toLocaleString('en-ZA')} orders. Customer saves ${R(c.customerSavePerOrder, 2)} an order.</div></div>
+        <div class="small" style="color:inherit">${R(c.vendorGainPerOrder, 2)} an order × ${c.monthOrders.toLocaleString('en-ZA')} orders${c.measured ? `, against ${esc(c.gainApp)}` : ''}. Customer saves ${R(c.customerSavePerOrder, 2)} an order${c.measured ? ` against ${esc(c.saveApp)}` : ''}.</div></div>
+      ${c.measured && c.apps.length > 1 ? '<p class="small">With both apps checked, the headline uses whichever app gives the smaller number, so it is never overstated.</p>' : ''}
       <div class="tablewrap compact"><table><thead><tr><th></th><th class="r">${esc(appLabel)}</th><th class="r">FEEST</th></tr></thead><tbody>
         <tr><td>Who owns the customer</td><td class="r">The app</td><td class="r">The vendor</td></tr>
         <tr><td>Brand on the delivery</td><td class="r">The app's</td><td class="r">${v.model === 'own_branded' ? "Vendor's, on own fleet" : "Vendor's, order on FEEST"}</td></tr>
@@ -628,6 +679,7 @@ function viewToolkit(v) {
       <p class="small">An estimate on the owner's own numbers. Never promise order volumes.</p>`;
   }
   $('tf').addEventListener('input', drawCmp); $('tf').addEventListener('change', drawCmp);
+  if ($('pcf')) { $('pcf').addEventListener('input', drawCmp); $('pcf').addEventListener('change', drawCmp); $('pcf').onsubmit = (e) => e.preventDefault(); }
   drawCmp();
   $('tf').onsubmit = async (e) => {
     e.preventDefault(); if (ro) return;
@@ -647,7 +699,7 @@ function termsHtml(T, startDate) {
     <dt>Services</dt><dd>${esc(T.services.join(', '))}</dd>
     <dt>FEEST service fee</dt><dd>${T.tier}% of menu price, paid by the ${esc(T.paidBy)}${T.delivery ? `. Delivery fee ${R(T.deliveryFee)} charged to the customer.` : '.'}</dd>
     <dt>Installation pack</dt><dd>${T.pack.rows.length ? `${R(T.pack.printTotal, 2)} print at cost` : 'No print items'}${T.social ? ` + ${R(T.pack.social, 2)} social media setup` : ''}. Total ${R(T.pack.total, 2)} incl. ${T.pack.vatPct}% VAT.</dd>
-    ${T.toolkit ? `<dt>Estimate shown</dt><dd>Vendor keeps about ${R(T.toolkit.monthGain)} more a month than on the apps, on ${T.toolkit.opd} orders a day at ${R(T.toolkit.aov)}. An estimate, not a promise.</dd>` : ''}
+    ${T.toolkit ? `<dt>Estimate shown</dt><dd>Vendor keeps about ${R(T.toolkit.monthGain)} more a month than on ${esc(T.toolkit.gainApp || 'the apps')}, on ${T.toolkit.opd} orders a day at ${R(T.toolkit.aov)}${T.toolkit.measured ? ', with app prices measured in store' : ''}. An estimate, not a promise.</dd>` : ''}
   </dl>`;
 }
 function SigPad(host, label) {
