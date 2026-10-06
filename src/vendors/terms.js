@@ -27,7 +27,8 @@ function termsFor(v, settings) {
     services: F.SERVICES.filter((x) => s[x.key]).map((x) => x.label),
     tier: Number(t.tier), paidBy: t.paidBy === 'vendor' ? 'vendor' : 'customer',
     delivery: !!s.delivery, deliveryFee: Number(t.delivery) || 0,
-    toolkit: s.delivery ? Object.assign({ aov: Number(t.aov), opd: Number(t.opd), days: Number(t.days) }, F.compare(t)) : null,
+    toolkit: s.delivery ? Object.assign({ aov: Number(t.aov), opd: Number(t.opd), days: Number(t.days) }, F.compare(t),
+      t.priceCheck ? { priceCheck: Object.assign({ checkedOn: t.priceCheck.checkedOn || null }, F.priceCheck(t.priceCheck)) } : {}) : null,
     pack, social: !!s.social,
   };
 }
@@ -48,6 +49,7 @@ function packEmail(ag) {
     T.delivery ? `- Delivery: ${T.model}, ${R(T.deliveryFee)} delivery fee charged to the customer` : '- No delivery: pickup and in-store ordering',
     `- Services: ${T.services.join(', ')}`,
     `- Installation pack: ${R(T.pack.total, 2)} incl. VAT${T.social ? `, including ${R(T.pack.social)} social media setup` : ''}`,
+    T.toolkit && T.toolkit.priceCheck && T.toolkit.priceCheck.measured ? `- Checked in store on your best sellers: ${[['Uber Eats', T.toolkit.priceCheck.uber.markup], ['Mr D', T.toolkit.priceCheck.mrd.markup]].filter((a) => a[1] !== null).map((a) => `${a[0]} ${a[1] >= 0 ? '+' : '-'}${Math.round(Math.abs(a[1]) * 10) / 10}%`).join(', ')} on menu prices vs your counter` : null,
     T.toolkit ? `- Estimate: you keep about ${R(T.toolkit.monthGain)} more a month than on the apps` : null, '',
     'Please reply "I confirm" to accept the agreement. We will then order your print and set up your WhatsApp ordering before the start date.', '',
     'Kind regards,', ag.rep_name, 'FEEST',

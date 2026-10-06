@@ -82,6 +82,66 @@
     };
   }
 
+  /**
+   * In-store price check: the rep asks the manager for the 3 best sellers, takes the
+   * counter price, then checks the same items on Uber Eats and Mr D through to checkout.
+   * pc: {items: [{name, store, uber, mrd}] (up to 3),
+   *      uber: {delivery, service, small, commission}, mrd: {…}}  — rand, commission in %.
+   * Blank (null/'') means not checked; an app price of 0 or blank means not listed.
+   * Returns per-app results and `use`: the measured rates the comparison runs on.
+   * The comparison is against the cheaper of the two apps at checkout, so the
+   * vendor's gain is never overstated.
+   */
+  function priceCheck(pc) {
+    pc = pc || {};
+    const has = (v) => v !== null && v !== undefined && v !== '' && Number.isFinite(parseFloat(v));
+    const items = (Array.isArray(pc.items) ? pc.items : []).slice(0, 3)
+      .map((it) => ({ name: String((it && it.name) || '').trim().slice(0, 80), store: num(it && it.store), uber: num(it && it.uber), mrd: num(it && it.mrd) }))
+      .filter((it) => it.store > 0);
+    const storeTotal = round2(items.reduce((a, it) => a + it.store, 0));
+    const apps = {};
+    ['uber', 'mrd'].forEach((k) => {
+      const f = pc[k] || {};
+      const listed = items.filter((it) => it[k] > 0);
+      const sIn = listed.reduce((a, it) => a + it.store, 0), app = listed.reduce((a, it) => a + it[k], 0);
+      const fees = { delivery: has(f.delivery) ? num(f.delivery) : null, service: has(f.service) ? num(f.service) : null, small: has(f.small) ? num(f.small) : null };
+      apps[k] = {
+        listed: listed.length, of: items.length,
+        storeListed: round2(sIn), appSubtotal: round2(app),
+        markup: listed.length ? round2((app / sIn - 1) * 100) : null,
+        ...fees,
+        feesComplete: fees.delivery !== null && fees.service !== null && fees.small !== null,
+        commission: has(f.commission) ? Math.min(100, Math.max(0, num(f.commission))) : null,
+        checkout: listed.length ? round2(app + (fees.delivery || 0) + (fees.service || 0) + (fees.small || 0)) : null,
+      };
+    });
+    // Which app to compare against: the cheaper checkout among apps with prices, as a share of the counter price.
+    const ratio = (k) => (apps[k].checkout === null ? Infinity : apps[k].checkout / apps[k].storeListed);
+    const pick = ['uber', 'mrd'].filter((k) => apps[k].markup !== null).sort((a, b) => ratio(a) - ratio(b))[0] || null;
+    let use = null;
+    if (pick) {
+      const a = apps[pick];
+      use = {
+        app: pick, markup: a.markup,
+        appDelivery: a.delivery !== null || a.small !== null ? round2((a.delivery || 0) + (a.small || 0)) : null,
+        appService: a.service !== null && a.appSubtotal > 0 ? round2(a.service / a.appSubtotal * 100) : null,
+        commission: a.commission,
+      };
+    }
+    return { items, storeTotal, uber: apps.uber, mrd: apps.mrd, measured: !!pick, use };
+  }
+
+  /** Toolkit inputs with any measured price-check rates laid over the typed-in ones. */
+  function withPriceCheck(t) {
+    const r = priceCheck(t && t.priceCheck);
+    if (!r.measured) return t;
+    const o = Object.assign({}, t, { markup: r.use.markup });
+    if (r.use.appDelivery !== null) o.appDelivery = r.use.appDelivery;
+    if (r.use.appService !== null) o.appService = r.use.appService;
+    if (r.use.commission !== null) o.commission = r.use.commission;
+    return o;
+  }
+
   /** v: {model, services, ownDrivers, vehicles, tables, printQty} */
   function printQty(item, v) {
     const s = v.services || {};
@@ -116,5 +176,5 @@
     return d.toISOString().slice(0, 10);
   }
 
-  return { DEFAULT_PRICING, DEFAULT_PRINT, MODELS, SERVICES, pricing, printList, toolkitDefaults, compare, printQty, packCost, defaultStartDate };
+  return { DEFAULT_PRICING, DEFAULT_PRINT, MODELS, SERVICES, pricing, printList, toolkitDefaults, compare, priceCheck, withPriceCheck, printQty, packCost, defaultStartDate };
 });

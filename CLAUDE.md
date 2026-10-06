@@ -10,7 +10,7 @@ The vendor journey (stages are derived, see src/vendors/stages.js)
 1. Areas and reps: sales leads allocate reps to areas.
 2. Capture (stage captured): pin at the entrance, owner company (signs, like a landlord), photos.
 3. Model and services: open network, own drivers branded or unbranded, or no delivery; services incl. Pilot and social setup.
-4. Sales toolkit (ready): their numbers against Uber Eats and Mr D.
+4. Sales toolkit (ready): in-store price check first (3 best sellers from the manager, counter price vs Uber Eats and Mr D through to checkout); the measured rates (finance.priceCheck / withPriceCheck, against the cheaper app) replace the estimates, then their numbers against the apps.
 5. Agreement (signoff): owner and rep sign on screen; start date defaults to 30 days out; terms are snapshotted.
 6. Pack: PDF emailed to the owner (SMTP) or downloaded and sent by the rep; owner's confirmation recorded (install).
 7. Installation checklist, then go-live (live). Orders then flow Keychat → vendor (Pilot or WhatsApp) → dispatch.

@@ -223,3 +223,20 @@ tfoot td{font-weight:700;background:var(--soft)}
 .big{line-height:1.15}
 @media (max-width:600px){.terms dl{grid-template-columns:minmax(0,1fr);gap:2px 0}.terms dd{margin-bottom:8px}}
 .flow{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+
+/* Toolkit: in-store price check */
+.pc{border-color:var(--violet)}
+.pc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.pc-steps{margin:0;padding-left:20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:6px 20px;color:var(--muted)}
+.pc-steps b{color:var(--ink)}
+.pc-table{min-width:600px}
+.pc-table td{padding:4px 6px}
+.pc-table td:first-child{min-width:200px}
+.pc-table input{width:100%;text-align:right;font-variant-numeric:tabular-nums}
+.pc-table td:first-child input{text-align:left}
+.pc-table tr.sub td{background:var(--soft)}
+.pc-table tfoot th{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+.pc-table tfoot th:first-child{text-align:left}
+.pc-badge{font-size:var(--fs-meta);line-height:var(--lh-meta);font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:4px 10px;border-radius:999px;background:var(--warn-soft);color:var(--warn);white-space:nowrap}
+.pc-badge.ok{background:var(--ok-soft);color:var(--ok)}
+input.measured{background:var(--ok-soft);color:var(--ok);border-color:var(--ok)}

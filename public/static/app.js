@@ -568,7 +568,37 @@ function viewToolkit(v) {
   const p = pricing();
   const t = Object.assign(F.toolkitDefaults(p), v.toolkit || {});
   const delivery = !!(v.services && v.services.delivery);
+  const pc0 = t.priceCheck || {};
+  const pcIt = (i) => (pc0.items && pc0.items[i]) || {};
+  const pcF = (k) => pc0[k] || {};
+  const pv = (x) => (x === null || x === undefined ? '' : esc(x));
+  const pcRow = (i) => `<tr><td><input id="pc_n${i}" type="text" maxlength="80" placeholder="Best seller ${i + 1}" aria-label="Best seller ${i + 1}" value="${pv(pcIt(i).name)}"></td>
+      <td><input id="pc_s${i}" type="number" min="0" step="0.5" inputmode="decimal" aria-label="Best seller ${i + 1}, in-store price" value="${pv(pcIt(i).store)}"></td>
+      <td><input id="pc_u${i}" type="number" min="0" step="0.5" inputmode="decimal" aria-label="Best seller ${i + 1}, Uber Eats price" value="${pv(pcIt(i).uber)}"></td>
+      <td><input id="pc_d${i}" type="number" min="0" step="0.5" inputmode="decimal" aria-label="Best seller ${i + 1}, Mr D price" value="${pv(pcIt(i).mrd)}"></td></tr>`;
+  const pcFee = (label, key, unit) => `<tr class="sub"><td>${label}</td><td class="small">–</td>
+      <td><input id="pc_u_${key}" type="number" min="0" step="0.5" inputmode="decimal" aria-label="Uber Eats ${label}" value="${pv(pcF('uber')[key])}"></td>
+      <td><input id="pc_d_${key}" type="number" min="0" step="0.5" inputmode="decimal" aria-label="Mr D ${label}" value="${pv(pcF('mrd')[key])}"></td></tr>`;
+  const pcCard = delivery ? `<form id="pcf" class="card pc" novalidate><fieldset ${ro ? 'disabled' : ''} style="border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:14px;min-width:0">
+      <div class="pc-head"><div><div class="eyebrow">Start here, in store</div><h2>Price check on their best sellers</h2></div><span class="pc-badge" id="pcBadge">Using estimates</span></div>
+      <ol class="pc-steps">
+        <li><b>Ask the manager</b> for their 3 best-selling items.</li>
+        <li><b>Take the in-store price</b> of each from the menu board or till.</li>
+        <li><b>Check both apps</b> on your phone, delivering to a street about 3 km away. Leave a price blank if the item isn't listed.</li>
+        <li><b>Go to checkout, don't pay.</b> All 3 items in the basket; enter the fees exactly as shown.</li>
+        <li><b>Screenshot both checkouts</b> and show the manager their own food.</li>
+        <li><b>Ask what commission</b> they pay. Enter it if they tell you.</li>
+      </ol>
+      <div class="tablewrap"><table class="pc-table"><thead><tr><th>Best seller</th><th class="r">In store (R)</th><th class="r">Uber Eats (R)</th><th class="r">Mr D (R)</th></tr></thead><tbody>
+        ${pcRow(0)}${pcRow(1)}${pcRow(2)}
+        ${pcFee('Delivery fee at checkout (R)', 'delivery')}${pcFee('Service fee at checkout (R)', 'service')}${pcFee('Small-order fee (R, 0 if none)', 'small')}${pcFee('Commission they pay (%)', 'commission')}
+      </tbody><tfoot><tr><th>Basket at checkout</th><th class="r" id="pcTs">–</th><th class="r" id="pcTu">–</th><th class="r" id="pcTd">–</th></tr>
+        <tr><th>Menu prices vs counter</th><th></th><th class="r" id="pcMu">–</th><th class="r" id="pcMd">–</th></tr></tfoot></table></div>
+      <p class="small" id="pcNote">Measured prices and fees replace the estimates below. Anything left blank keeps the estimate.</p>
+      <div class="acts"><button class="btn btn-ghost" type="button" id="pcAov" hidden>Use the basket as their average order</button>${ro ? '' : '<button class="btn btn-ghost" type="button" id="pcClear">Clear the price check</button>'}</div>
+    </fieldset></form>` : '';
   $('main').innerHTML = `<div class="wrap">${vendorHead(v, 'toolkit')}${signedLock(v)}
+    ${pcCard}
     <div class="grid2" style="align-items:start">
       <form id="tf" class="card" novalidate><fieldset ${ro ? 'disabled' : ''} style="border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:14px;min-width:0">
         <h2>${delivery ? 'Their numbers' : 'Fee'}</h2>
@@ -583,7 +613,7 @@ function viewToolkit(v) {
           <div class="field"><label for="t_comm">App commission %</label><input id="t_comm" type="number" min="0" step="1" value="${esc(t.commission)}"></div>
           <div class="field"><label for="t_appdel">App delivery fee (R)</label><input id="t_appdel" type="number" min="0" step="1" value="${esc(t.appDelivery)}"></div>
           <div class="field"><label for="t_appsvc">App service fee %</label><input id="t_appsvc" type="number" min="0" step="0.5" value="${esc(t.appService)}"></div>
-        </div><p class="small">Defaults are press-test estimates. Change them to what the owner says they pay.</p></details>` : ''}
+        </div><p class="small" id="appNote">Defaults are press-test estimates. Run the price check above to measure them.</p></details>` : ''}
         <div class="grid2">
           <div class="field"><label for="t_tier">FEEST service fee</label><select id="t_tier">${p.tiers.map((x) => `<option value="${x}" ${num(t.tier) === x ? 'selected' : ''}>${x}% of menu price</option>`).join('')}</select></div>
           <div class="field"><label for="t_paid">Fee paid by</label><select id="t_paid"><option value="customer">Customer</option><option value="vendor">Vendor</option></select></div>
@@ -600,10 +630,48 @@ function viewToolkit(v) {
   if ($('t_apps')) $('t_apps').value = t.apps;
   $('t_paid').value = t.paidBy;
   const g = (i, d) => ($(i) ? $(i).value : d);
+  const blank = (id) => { const s = $(id) ? $(id).value.trim() : ''; return s === '' ? null : s; };
+  const readPC = () => delivery ? {
+    items: [0, 1, 2].map((i) => ({ name: $('pc_n' + i).value, store: blank('pc_s' + i), uber: blank('pc_u' + i), mrd: blank('pc_d' + i) })),
+    uber: { delivery: blank('pc_u_delivery'), service: blank('pc_u_service'), small: blank('pc_u_small'), commission: blank('pc_u_commission') },
+    mrd: { delivery: blank('pc_d_delivery'), service: blank('pc_d_service'), small: blank('pc_d_small'), commission: blank('pc_d_commission') },
+  } : null;
   const read = () => ({ aov: num(g('t_aov', t.aov)), opd: num(g('t_opd', t.opd)), days: num(g('t_days', t.days)), apps: g('t_apps', t.apps),
     markup: num(g('t_markup', t.markup)), commission: num(g('t_comm', t.commission)), appDelivery: num(g('t_appdel', t.appDelivery)), appService: num(g('t_appsvc', t.appService)),
-    tier: num($('t_tier').value), paidBy: $('t_paid').value, delivery: num(g('t_del', t.delivery)) });
+    tier: num($('t_tier').value), paidBy: $('t_paid').value, delivery: num(g('t_del', t.delivery)), priceCheck: readPC() });
+  // The typed-in (or default) app rates, restored when a measured value is cleared.
+  const typed = { t_markup: t.markup, t_comm: t.commission, t_appdel: t.appDelivery, t_appsvc: t.appService };
+  if (t.priceCheck) { const d = F.toolkitDefaults(p); Object.assign(typed, { t_markup: d.markup, t_comm: d.commission, t_appdel: d.appDelivery, t_appsvc: d.appService }); }
+  const measuredIds = {};
+  function setMeasured(id, val) {
+    const el = $(id); if (!el) return;
+    if (val === null || val === undefined) { if (measuredIds[id]) el.value = typed[id]; measuredIds[id] = false; }
+    else { if (measuredIds[id] === false) typed[id] = el.value; el.value = String(val); measuredIds[id] = true; }
+    el.readOnly = !!measuredIds[id]; el.classList.toggle('measured', !!measuredIds[id]);
+  }
+  function applyPC() {
+    if (!delivery) return;
+    const r = F.priceCheck(readPC()), u = r.use || {};
+    setMeasured('t_markup', r.measured ? u.markup : null);
+    setMeasured('t_appdel', r.measured ? u.appDelivery : null);
+    setMeasured('t_appsvc', r.measured ? u.appService : null);
+    setMeasured('t_comm', r.measured ? u.commission : null);
+    const pct = (x) => (x === null ? '–' : (x >= 0 ? '+' : '−') + (Math.round(Math.abs(x) * 10) / 10).toLocaleString('en-ZA') + '%');
+    const tot = (a) => (a.checkout === null ? '–' : R(a.checkout, 2) + (a.feesComplete ? '' : '*') + (a.listed < a.of ? ` (${a.listed} of ${a.of})` : ''));
+    $('pcTs').textContent = r.storeTotal ? R(r.storeTotal, 2) : '–';
+    $('pcTu').textContent = tot(r.uber); $('pcTd').textContent = tot(r.mrd);
+    $('pcMu').textContent = pct(r.uber.markup); $('pcMd').textContent = pct(r.mrd.markup);
+    const b = $('pcBadge'); b.textContent = r.measured ? 'Measured in store' : 'Using estimates'; b.classList.toggle('ok', r.measured);
+    const appName = u.app === 'uber' ? 'Uber Eats' : 'Mr D';
+    const missing = ['uber', 'mrd'].some((k) => r[k].listed && !r[k].feesComplete);
+    $('pcNote').textContent = (missing ? '* Some checkout fees are still blank, so that total leaves them out. ' : '') +
+      (r.measured ? `The comparison now runs on these prices, against ${appName}: the cheaper of the two apps at checkout, so the gain is never overstated.` : 'Measured prices and fees replace the estimates below. Anything left blank keeps the estimate.');
+    if ($('appNote')) $('appNote').textContent = r.measured ? `Highlighted rates were measured in store on ${appName}. Clear the price check to type your own.` : 'Defaults are press-test estimates. Run the price check above to measure them.';
+    if (r.measured && $('t_apps') && $('t_apps').value === 'none') $('t_apps').value = 'both';
+    $('pcAov').hidden = !(r.storeTotal > 0) || ro;
+  }
   function drawCmp() {
+    applyPC();
     const x = read(), c = F.compare(x);
     if (!delivery) { $('cmpHost').innerHTML = `<h2>Summary</h2><p>No delivery for this vendor. FEEST charges ${x.tier}% on menu price, paid by the ${esc(x.paidBy)}, on WhatsApp, pickup and table orders.</p>`; return; }
     const appLabel = x.apps === 'none' ? 'If they joined the apps' : 'Uber Eats / Mr D';
@@ -628,6 +696,12 @@ function viewToolkit(v) {
       <p class="small">An estimate on the owner's own numbers. Never promise order volumes.</p>`;
   }
   $('tf').addEventListener('input', drawCmp); $('tf').addEventListener('change', drawCmp);
+  if ($('pcf')) {
+    $('pcf').addEventListener('input', drawCmp);
+    $('pcf').onsubmit = (e) => e.preventDefault();
+    $('pcAov').onclick = () => { const r = F.priceCheck(readPC()); if (r.storeTotal > 0 && $('t_aov')) { $('t_aov').value = r.storeTotal; drawCmp(); toast('Average order set to the basket'); } };
+    if ($('pcClear')) $('pcClear').onclick = () => { $('pcf').querySelectorAll('input').forEach((el) => { el.value = ''; }); drawCmp(); };
+  }
   drawCmp();
   $('tf').onsubmit = async (e) => {
     e.preventDefault(); if (ro) return;

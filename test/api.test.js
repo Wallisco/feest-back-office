@@ -63,6 +63,16 @@ test('vendor journey: areas → capture → toolkit → agreement → pack → s
     // Agreement
     const pv = (await call('GET', `/api/vendors/${vid}/terms`)).body;
     assert.equal(pv.terms.toolkit.monthGain, 14625);
+    // In-store price check: measured rates replace the typed ones and are snapshotted into the terms
+    const pcBody = { aov: 180, opd: 25, days: 26, markup: 25, commission: 30, appDelivery: 15, appService: 4, tier: 15, paidBy: 'customer', delivery: 25,
+      priceCheck: { items: [{ name: 'Burger', store: 100, uber: 130, mrd: 140 }], uber: { delivery: 20, service: 0, small: 0, commission: 25 }, mrd: { delivery: 25, service: 5, small: 0 } } };
+    assert.equal((await call('PUT', `/api/vendors/${vid}/toolkit`, pcBody)).status, 200);
+    const pv2 = (await call('GET', `/api/vendors/${vid}/terms`)).body;
+    assert.equal(pv2.terms.toolkit.priceCheck.uber.markup, 30);
+    assert.equal(pv2.terms.toolkit.appMenu, 234);       // 180 × 1.30, measured markup
+    assert.equal(pv2.terms.toolkit.appVendor, 175.5);   // 25% commission from the manager
+    // Back to the plain numbers so the rest of the journey checks the manual's example
+    assert.equal((await call('PUT', `/api/vendors/${vid}/toolkit`, { aov: 180, opd: 25, days: 26, markup: 25, commission: 30, appDelivery: 15, appService: 4, tier: 15, paidBy: 'customer', delivery: 25 })).status, 200);
     assert.equal(pv.terms.pack.social, 3000);
     assert.equal((await call('POST', `/api/vendors/${vid}/agreement`, { startDate: pv.startDate, ownerName: 'Yusuf Adams', ownerTitle: 'Owner', agree: false, ownerSig: png, repSig: png })).status, 400);
     assert.equal((await call('POST', `/api/vendors/${vid}/agreement`, { startDate: pv.startDate, ownerName: 'Yusuf Adams', ownerTitle: 'Owner', agree: true, ownerSig: png, repSig: png })).status, 200);
@@ -103,7 +113,7 @@ test('vendor journey: areas → capture → toolkit → agreement → pack → s
     const a = new Client({ connectionString: URL_ }); await a.connect();
     const actions = (await a.query(`SELECT action FROM audit_log WHERE entity='vendor' AND entity_id=$1 ORDER BY id`, [vid])).rows.map((r) => r.action);
     await a.end();
-    assert.deepEqual(actions, ['vendor.create', 'vendor.services', 'vendor.toolkit', 'agreement.sign', 'pack.marked_emailed', 'pack.signed_off', 'install.update', 'vendor.live']);
+    assert.deepEqual(actions, ['vendor.create', 'vendor.services', 'vendor.toolkit', 'vendor.toolkit', 'vendor.toolkit', 'agreement.sign', 'pack.marked_emailed', 'pack.signed_off', 'install.update', 'vendor.live']);
 
     // Public toolkit
     const tk = await fetch(base + '/toolkit');

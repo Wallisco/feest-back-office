@@ -281,6 +281,19 @@ router.put('/vendors/:id/services', h(async (req, res) => {
 }));
 
 // ---------- sales toolkit ----------
+/** Price check from the toolkit form → bounded numbers only; null when nothing was measured. */
+function cleanPriceCheck(pc) {
+  if (!pc || typeof pc !== 'object') return null;
+  const opt = (v, max) => { if (v === null || v === undefined || v === '') return null; const x = parseFloat(v); return Number.isFinite(x) ? Math.min(max, Math.max(0, x)) : null; };
+  const items = (Array.isArray(pc.items) ? pc.items : []).slice(0, 3).map((it) => ({
+    name: String((it && it.name) || '').trim().slice(0, 80),
+    store: opt(it && it.store, 100000), uber: opt(it && it.uber, 100000), mrd: opt(it && it.mrd, 100000),
+  }));
+  const fees = (f) => ({ delivery: opt(f && f.delivery, 1000), service: opt(f && f.service, 1000), small: opt(f && f.small, 1000), commission: opt(f && f.commission, 100) });
+  const out = { items, uber: fees(pc.uber), mrd: fees(pc.mrd), checkedOn: new Date().toISOString().slice(0, 10) };
+  return F.priceCheck(out).measured ? out : null;
+}
+
 router.put('/vendors/:id/toolkit', h(async (req, res) => {
   await db.tx(async (c) => {
     const v = await loadVendor(c, req.params.id, true);
@@ -297,6 +310,9 @@ router.put('/vendors/:id/toolkit', h(async (req, res) => {
       markup: num(b.markup, 0, 200), commission: num(b.commission, 0, 100), appDelivery: num(b.appDelivery, 0, 1000), appService: num(b.appService, 0, 100),
       tier, paidBy: b.paidBy === 'vendor' ? 'vendor' : 'customer', delivery: num(b.delivery, 0, 1000),
     };
+    // In-store price check on the 3 best sellers: measured rates replace the typed-in app rates.
+    const pc = cleanPriceCheck(b.priceCheck);
+    if (pc) { t.priceCheck = pc; Object.assign(t, F.withPriceCheck(t)); }
     if (delivery && (!t.aov || !t.opd || !t.days)) throw bad('Enter the average order, orders a day and trading days.');
     const r = (await c.query(`UPDATE vendors SET toolkit=$2, toolkit_completed_at=COALESCE(toolkit_completed_at, now()), updated_at=now() WHERE id=$1 RETURNING *`, [v.id, t])).rows[0];
     await audit(c, { actorId: req.user.id, action: 'vendor.toolkit', entity: 'vendor', entityId: v.id, before: v.toolkit, after: { ...t, result: delivery ? F.compare(t) : null }, ip: req.ip });

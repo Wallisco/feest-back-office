@@ -42,3 +42,37 @@ test('start date is 30 days out by default', () => {
   assert.equal(F.defaultStartDate('2026-10-05'), '2026-11-04');
   assert.equal(F.defaultStartDate('2026-12-15', { startOffsetDays: 30 }), '2027-01-14');
 });
+
+test('price check: measured markups, cheaper app at checkout, rates laid over the toolkit', () => {
+  const pc = {
+    items: [
+      { name: 'Full chicken and chips', store: 100, uber: 125, mrd: 130 },
+      { name: 'Burger', store: 80, uber: 100, mrd: 100 },
+      { name: 'Wrap', store: 60, uber: 75, mrd: '' },              // not on Mr D
+    ],
+    uber: { delivery: 15, service: 12, small: 0, commission: '' },
+    mrd: { delivery: 20, service: 0, small: 0, commission: 28 },
+  };
+  const r = F.priceCheck(pc);
+  assert.equal(r.storeTotal, 240);
+  assert.equal(r.uber.markup, 25);                // 300 / 240
+  assert.equal(r.uber.checkout, 327);             // 300 + 15 + 12 + 0
+  assert.equal(r.mrd.listed, 2);
+  assert.equal(r.mrd.markup, 27.78);              // 230 / 180
+  assert.equal(r.mrd.checkout, 250);
+  // Uber: 327/240 = 1.3625; Mr D: 250/180 = 1.3889 → compare against Uber Eats
+  assert.equal(r.use.app, 'uber');
+  assert.deepEqual(r.use, { app: 'uber', markup: 25, appDelivery: 15, appService: 4, commission: null });
+  const t = F.withPriceCheck({ ...F.toolkitDefaults(), markup: 40, appService: 9, priceCheck: pc });
+  assert.equal(t.markup, 25);
+  assert.equal(t.appService, 4);
+  assert.equal(t.commission, 30);                 // not given for Uber, keeps the typed rate
+});
+
+test('price check: nothing measured leaves the toolkit alone', () => {
+  const r = F.priceCheck({ items: [{ name: 'Pie', store: 50 }], uber: {}, mrd: {} });
+  assert.equal(r.measured, false);
+  assert.equal(r.use, null);
+  const t = { ...F.toolkitDefaults(), markup: 33 };
+  assert.equal(F.withPriceCheck({ ...t, priceCheck: null }).markup, 33);
+});

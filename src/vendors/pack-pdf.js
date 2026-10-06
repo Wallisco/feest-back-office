@@ -92,6 +92,22 @@ function buildPackPdf(ag, sigs) {
       row(['', 'Uber Eats / Mr D', 'FEEST'], xs, { bold: true, color: C.muted, size: 9 });
       row(['Customer pays', R(k.appCustomer, 2), R(k.feestCustomer, 2)], xs);
       row(['You receive', R(k.appVendor, 2), R(k.feestVendor, 2)], xs);
+      if (k.priceCheck && k.priceCheck.measured) {
+        const pc = k.priceCheck;
+        const pct = (x) => (x >= 0 ? '+' : '-') + Math.abs(x).toLocaleString('en-ZA', { maximumFractionDigits: 1 }) + '%';
+        const price = (x) => (x > 0 ? R(x, 2) : 'not listed');
+        doc.moveDown(0.6).font('Helvetica-Bold').fontSize(10).fillColor(C.ink)
+          .text(`Checked in your store${pc.checkedOn ? ' on ' + fmtD(pc.checkedOn) : ''}, on your best sellers`, M, doc.y, { width: IW });
+        doc.moveDown(0.3);
+        const ps = [[M, 190], [M + 195, 95, 'right'], [M + 295, 95, 'right'], [M + 395, IW - 395, 'right']];
+        row(['Item', 'In store', 'Uber Eats', 'Mr D'], ps, { bold: true, color: C.muted, size: 9 });
+        pc.items.forEach((it) => row([it.name || 'Item', R(it.store, 2), price(it.uber), price(it.mrd)], ps));
+        const co = (a) => (a.checkout === null ? '-' : R(a.checkout, 2) + (a.listed < a.of ? ` (${a.listed} of ${a.of})` : ''));
+        row(['Basket at checkout, incl. fees', R(pc.storeTotal, 2), co(pc.uber), co(pc.mrd)], ps, { bold: true });
+        row(['Menu prices vs your counter', '', pc.uber.markup === null ? '-' : pct(pc.uber.markup), pc.mrd.markup === null ? '-' : pct(pc.mrd.markup)], ps);
+        doc.font('Helvetica').fontSize(9).fillColor(C.muted)
+          .text(`The comparison above uses these measured prices and fees, against ${pc.use.app === 'uber' ? 'Uber Eats' : 'Mr D'}, the cheaper of the two apps at checkout.`, M, doc.y + 2, { width: IW });
+      }
       doc.moveDown(0.3).font('Helvetica-Bold').fontSize(10.5).fillColor(C.violet)
         .text(`You keep about ${R(k.monthGain)} more a month. This is an estimate on your own numbers, not a promise of order volumes.`, M, doc.y, { width: IW });
     }
