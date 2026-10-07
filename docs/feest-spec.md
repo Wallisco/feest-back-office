@@ -227,6 +227,8 @@ OpenStreetMap tiles with Leaflet. Drivers coloured by state (available, to store
 - **Onboarding.** Steps: documents checked (ID, licence, vehicle papers, PrDP if needed), bank or wallet linked, training done, first shift. Each step has who did it and when. A driver goes active only when every step is done.
 - **Active drivers.** Status, area, vehicle (ScootHero bike or own), acceptance rate, completion rate, lateness, rating, this week's earnings. Suspend or reactivate with a reason.
 - **Messages.** Two-way with the driver app. Templates for common replies.
+- **Never stuck.** On a driver's page: **Sign driver out** (revokes their login; the app goes to sign-in) and **Clear driver's job** (ends their current job; the order goes back to dispatch or is closed). Ops lead and dispatcher, with a reason, audited. Needed because a job cancelled here must never leave a driver looping in the app.
+- **Ratings.** Customer ratings of drivers (Great · Okay · Bad by WhatsApp, with "How can we improve?" comments) and store ratings from on-time collection (Great: food ready on arrival; Okay: up to 5 minutes' wait; Bad: over 5). Store ratings also show on the vendor page. The driver app spec is `driver-app/docs/driver-app-spec.md` in the dispatch repo (branch `driver-app-track`).
 
 ---
 
