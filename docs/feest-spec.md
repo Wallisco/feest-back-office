@@ -51,6 +51,20 @@ Rules that follow:
 - Live screens (map, orders today) read dispatch through the client. Each screen polls at most every 5 seconds, and the back office caches the response for 2 seconds so ten staff on the map cost one dispatch call.
 - No AWS or Azure. Everything runs on our own VPS: Postgres, Node, PM2, Nginx. The OSRM routing server sits on the dispatch server.
 
+## 1a. FEEST and white label (added 7 Oct 2026)
+
+Everything runs in two flavours from one system:
+- **FEEST:** stores sell under the FEEST name; customers see FEEST; any FEEST driver delivers (the open market).
+- **White label (a brand):** a chain such as KFC gets its own branded version: its name, logo and colours on WhatsApp ordering, the tracking page, rating messages, packaging and its reports. Deliveries go first to drivers approved for that brand.
+
+One back office, one database, one driver pool, one driver app. A brand is a setting, not a separate system.
+
+- **Brands** (Setup → Brands, CEO and admin): name, logo, colours, WhatsApp sender, tracking page look, and rules: fall back to open-market drivers after a wait limit (yes/no, default yes after 3 minutes), stacking with open-market orders (default no), own rate card (yes/no).
+- **Vendors** carry a brand: FEEST by default, or a brand for its stores. The sales toolkit, agreement pack and brand kit use the brand's look.
+- **Drivers:** every driver is in the open market. On the driver's page, ops lead approves the driver for one or more brands (with the date, who approved, and whether they have the brand's kit and box).
+- **Driver app:** two switches, Open market (also take open-market jobs within 5 km by road of where I am) and Long distance. See the driver app spec, section 2a.
+- **Reports:** a brand filter on the Overview and Metrics; a brand can later get a read-only view of its own stores.
+
 ---
 
 ## 2. Roles and permissions
@@ -115,7 +129,7 @@ Integration
   Keychat events            webhooks in and out, retries, failures
   Partner keys              issue and rotate
 Setup
-  Team and roles · Areas · Vendor categories · Fees · Print price list · Agreement wording
+  Team and roles · Areas · Brands · Vendor categories · Fees · Print price list · Agreement wording
   Segment targets · Payout settings · Stacking rules
 ```
 
@@ -227,6 +241,8 @@ OpenStreetMap tiles with Leaflet. Drivers coloured by state (available, to store
 - **Onboarding.** Steps: documents checked (ID, licence, vehicle papers, PrDP if needed), bank or wallet linked, training done, first shift. Each step has who did it and when. A driver goes active only when every step is done.
 - **Active drivers.** Status, area, vehicle (ScootHero bike or own), acceptance rate, completion rate, lateness, rating, this week's earnings. Suspend or reactivate with a reason.
 - **Messages.** Two-way with the driver app. Templates for common replies.
+- **Never stuck.** On a driver's page: **Sign driver out** (revokes their login; the app goes to sign-in) and **Clear driver's job** (ends their current job; the order goes back to dispatch or is closed). Ops lead and dispatcher, with a reason, audited. Needed because a job cancelled here must never leave a driver looping in the app.
+- **Ratings.** Customer ratings of drivers (Great · Okay · Bad by WhatsApp, with "How can we improve?" comments) and store ratings from on-time collection (Great: food ready on arrival; Okay: up to 5 minutes' wait; Bad: over 5). Store ratings also show on the vendor page. The driver app spec is `driver-app/docs/driver-app-spec.md` in the dispatch repo (branch `driver-app-track`).
 
 ---
 

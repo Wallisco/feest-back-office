@@ -81,3 +81,12 @@ To email packs straight from the app, add `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
 ## Placeholders to confirm
 
 Print unit costs (Setup → Print price list) and the agreement wording (draft for legal review, Setup → Agreement wording). Signed agreements keep the terms they were signed on.
+
+## feest.app (FEEST Driver public pages)
+
+The same app serves `feest.app`: the FEEST Driver home page, privacy policy, support and delete-account pages the app stores require (`src/site/render.js`, pages in `public/site/`). It answers only when the request's host is `feest.app` or `www.feest.app` (`SITE_HOSTS`).
+
+1. Point `feest.app` and `www.feest.app` (A records) at the server.
+2. On the server, as root: `EMAIL=you@example.com bash deploy/add-feest-app.sh` (Nginx site and SSL).
+3. Add the company details to `/var/www/feest-backoffice/shared/.env`: `SITE_COMPANY`, `SITE_COMPANY_REG`, `SITE_COMPANY_ADDRESS`, `SITE_INFO_OFFICER`, and optionally `SITE_SUPPORT_WHATSAPP`, `SITE_SUPPORT_EMAIL`, `SITE_PRIVACY_EMAIL` (defaults support@ and privacy@feest.app). Until they're set, the pages show "[… to confirm]". Redeploy.
+

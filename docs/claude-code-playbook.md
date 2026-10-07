@@ -68,6 +68,9 @@ Then make the repo private (GitHub → Settings → Danger zone).
 
 **Check:** take a test driver from opt-in to active on staging and see them come online in the driver app.
 
+## Step 5a — Brands (white label)
+> Build spec section 1a: Setup → Brands (CEO and admin) with name, logo, colours, WhatsApp sender, tracking look and the rules (fallback to open market and wait limit, stacking, own rate card), a brand on each vendor (FEEST by default), driver approvals per brand on the driver page (ops lead, audited), and a brand filter on the Overview. Send brands and approvals to dispatch through src/lib/dispatch.js. Migrations, permission tests and audit for every write.
+
 ## Step 6 — Pricing
 > Build spec section 7: zones as polygons drawn on the map (Leaflet.draw), rate cards per zone, surge schedule, and the old-vs-new preview on the last 20 orders before saving. Only ops_lead, CEO and admin can save. Keep history. Send changes to dispatch with PUT /v1/ops/zones/:id.
 
