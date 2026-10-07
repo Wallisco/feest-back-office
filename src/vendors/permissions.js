@@ -3,11 +3,7 @@
  * Who can do what. Checked on the server for every route; the browser only uses
  * the same answers to hide buttons.
  */
-const ROLES = ['sales_rep', 'sales_lead', 'onboarding', 'installation', 'finance', 'ceo', 'admin'];
-const ROLE_LABELS = {
-  sales_rep: 'Sales rep', sales_lead: 'Sales lead', onboarding: 'Onboarding', installation: 'Installation',
-  finance: 'Finance', ceo: 'CEO', admin: 'Admin',
-};
+const { ROLES, ROLE_LABELS, canUseModule } = require('../lib/permissions');
 const MANAGERS = ['sales_lead', 'ceo', 'admin'];
 
 /** areaRepIds: user ids allocated to the vendor's area. */
@@ -34,6 +30,6 @@ const canManageUsers = (user) => !!user && user.active && ['ceo', 'admin'].inclu
 const canEditSettings = (user) => !!user && user.active && ['ceo', 'admin'].includes(user.role);
 /** The Overview dashboard shows FEEST's margin and revenue: leads, finance and the exec only. */
 const canSeeOverview = (user) => !!user && user.active && ['sales_lead', 'finance', 'ceo', 'admin'].includes(user.role);
-const canView = (user) => !!user && user.active && ROLES.includes(user.role);
+const canView = (user) => canUseModule(user, 'vendors');
 
 module.exports = { ROLES, ROLE_LABELS, MANAGERS, canSell, canInstall, canSignForFeest, canManageAreas, canManageUsers, canEditSettings, canSeeOverview, canView };
