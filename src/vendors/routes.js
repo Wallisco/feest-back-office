@@ -16,8 +16,13 @@ const P = require('./permissions');
 const { shape, termsFor, packEmail } = require('./terms');
 const { buildPackPdf } = require('./pack-pdf');
 
+const { requireModule } = require('../lib/permissions');
+
 const router = express.Router();
 router.use(requireUser);
+// Everything here is the Vendors module, except changing your own password (every role has My account).
+const vendorsOnly = requireModule('vendors');
+router.use((req, res, next) => (req.path === '/me/password' ? next() : vendorsOnly(req, res, next)));
 
 // ---------- helpers ----------
 class HttpError extends Error { constructor(status, msg, code) { super(msg); this.status = status; this.code = code; } }

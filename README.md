@@ -21,11 +21,13 @@ The public **Sales Toolkit** (compare, brand kit, sign-up, driver earnings) is s
 | Path | What it does |
 |---|---|
 | `server.js` | Express app: login, sessions in Postgres, role-checked API, files, public `/toolkit`, `/healthz` |
+| `db/migrations/003_ops_roles.sql` | Dispatcher, ops lead and driver support roles |
 | `db/migrations/001_vendors_core.sql` | Users and roles, areas and reps, owners, vendors, agreements, wording versions, settings, email and audit logs |
 | `src/vendors/finance.js` | All the money: toolkit comparison, installation pack at cost, start date. Shared with the browser |
 | `src/vendors/checklist.js` | Installation checklist and go-live check. Shared with the browser |
 | `src/vendors/stages.js` | Stage from facts: captured → ready → signoff → install → live (or notnow) |
-| `src/vendors/permissions.js` | Who can do what |
+| `src/lib/permissions.js` | Roles, modules and menus, and the shared rules (payouts, pricing, ledger) |
+| `src/vendors/permissions.js` | Who can do what on a vendor |
 | `src/vendors/routes.js` | The API |
 | `src/vendors/pack-pdf.js` | The agreement and setup pack PDF (PDFKit) |
 | `src/lib/` | Database, audit log, login (scrypt, lockout), SMTP mail, file storage (from ScootHero) |
@@ -35,13 +37,20 @@ The public **Sales Toolkit** (compare, brand kit, sign-up, driver earnings) is s
 
 ## Roles
 
-| Role | Can do |
-|---|---|
-| Sales rep | Capture vendors; work vendors they own or in their areas: services, toolkit, sign, send pack, sign-off, installation |
-| Sales lead | Everything a rep can, on every vendor; manage areas and reps |
-| Onboarding, Installation | Installation checklist, print quantities and go-live on any vendor |
-| Finance | View everything |
-| CEO, Admin | Everything, plus team, fees, print price list, categories and agreement wording |
+The module switcher shows only the modules a role may open, and the server refuses the rest (`src/lib/permissions.js`).
+
+| Role | Modules | Can do |
+|---|---|---|
+| Sales rep | Vendors | Capture vendors; work vendors they own or in their areas: services, toolkit, sign, send pack, sign-off, installation |
+| Sales lead | Overview, Vendors | Everything a rep can, on every vendor; manage areas and reps |
+| Onboarding, Installation | Vendors | Installation checklist, print quantities and go-live on any vendor |
+| Dispatcher | Overview, Operations, Drivers, Metrics | Watch and act on orders (from step 3) |
+| Ops lead | Overview, Operations, Drivers, Pricing, Metrics, Integration | Everything a dispatcher can, plus driver decisions, suspensions and pricing |
+| Driver support | Drivers | Documents, onboarding steps, messages, notes. No pricing, no payouts |
+| Finance | All modules | View everything; prepare and approve payouts (never their own run) |
+| CEO, Admin | All modules | Everything, plus team, fees, print price list, categories and agreement wording |
+
+Dispatchers and ops leads see Overview → Today; the margin dashboard stays with sales leads, finance, CEO and admin.
 
 ## Run it locally
 

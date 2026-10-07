@@ -28,7 +28,7 @@ async function api(method, url, body) {
 const GET = (u) => api('GET', u), POST = (u, b) => api('POST', u, b || {}), PUT = (u, b) => api('PUT', u, b || {});
 
 /* ---------- State ---------- */
-const S = { me: null, users: [], areas: [], owners: [], vendors: [], agreements: [], categories: [], settings: null, stages: [], roles: [], mailConfigured: false, loaded: false };
+const S = { me: null, modules: [], mod: '', users: [], areas: [], owners: [], vendors: [], agreements: [], categories: [], settings: null, stages: [], roles: [], mailConfigured: false, loaded: false };
 const pricing = () => F.pricing(S.settings && S.settings.pricing);
 const printList = () => F.printList(S.settings && S.settings.print);
 const byId = (c, id) => (id ? S[c].find((x) => x.id === id) : null);
@@ -41,10 +41,13 @@ const roleLabel = (k) => (S.roles.find((r) => r.key === k) || {}).label || k;
 const modelLabel = (k) => (F.MODELS.find((m) => m.key === k) || {}).label || '';
 
 async function refresh() {
-  const b = await GET('/api/bootstrap');
-  Object.assign(S, b, { loaded: true });
+  const m = await GET('/api/me');
+  Object.assign(S, m);
+  // Vendor data only for roles that may open Vendors; the server refuses it to everyone else.
+  if (m.me.can.vendors) { const b = await GET('/api/bootstrap'); Object.assign(S, b); S.me.can = { ...m.me.can, ...b.me.can }; }
+  S.loaded = true;
   renderNav();
-  return b;
+  return m;
 }
 
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 3000); }
@@ -120,11 +123,26 @@ function Combo(host, cfg) {
 
 /* ---------- Routing ---------- */
 let current = { onData: null };
+const VENDOR_VIEWS = ['dashboard', 'new', 'vendor', 'areas', 'funnel'];
+const modAllowed = (k) => S.modules.some((m) => m.key === k);
+const moduleOf = (a) => (a === 'setup' ? S.mod : VENDOR_VIEWS.includes(a) ? 'vendors' : a);
+/** Where a user lands: their first module (the margin overview only for the roles that may see it). */
+function home() {
+  const m = S.modules[0];
+  if (!m) return 'setup';
+  if (m.key === 'vendors') return 'dashboard';
+  return m.key === 'overview' ? 'overview' : m.key + '/' + m.menu[0].key;
+}
 function route() {
-  const h = location.hash.replace(/^#/, '') || (S.me && S.me.can.overview ? 'overview' : 'dashboard');
+  const h = location.hash.replace(/^#/, '') || home();
   const [a, b, c] = h.split('/');
+  const mod = moduleOf(a);
+  if (a !== 'setup' && !modAllowed(mod)) { location.replace('#' + home()); return; } // the server refuses it too
+  if (mod) S.mod = mod;
+  renderNav();
   document.querySelectorAll('nav.side a').forEach((l) => l.removeAttribute('aria-current'));
-  const key = a === 'vendor' ? 'funnel/all' : a === 'setup' ? 'setup' : a === 'funnel' ? 'funnel/' + (b || 'all') : a;
+  const key = a === 'vendor' ? 'funnel/all' : a === 'setup' ? 'setup' : a === 'funnel' ? 'funnel/' + (b || 'all')
+    : a === 'overview' || mod === 'vendors' ? a : a + '/' + (b || '');
   const match = document.querySelector(`nav.side a[href="#${CSS.escape(key)}"]`);
   if (match) match.setAttribute('aria-current', 'page');
   closeMenu();
@@ -135,12 +153,29 @@ function route() {
   else if (a === 'areas') viewAreas();
   else if (a === 'funnel') viewFunnel(b || 'all');
   else if (a === 'setup') viewSetup(b || (S.me.can.manageUsers ? 'team' : 'account'));
-  else if (a === 'overview' && S.me.can.overview) viewOverview();
-  else viewDashboard();
+  else if (a === 'overview') { if (S.me.can.overview) viewOverview(); else viewComing('overview', 'today'); }
+  else if (mod === 'vendors') viewDashboard();
+  else viewComing(mod, b);
 }
 window.addEventListener('hashchange', route);
 
 function renderNav() {
+  const mods = S.modules.map((m) => {
+    const href = m.key === 'vendors' ? '#dashboard' : m.key === 'overview' ? '#overview' : `#${m.key}/${m.menu[0].key}`;
+    return `<a class="navlink" href="${href}" ${m.key === S.mod ? 'aria-current="page"' : ''}>${esc(m.label)}</a>`;
+  }).join('');
+  $('modbar').innerHTML = mods.replace(/class="navlink" /g, '');
+  $('modbar').hidden = S.modules.length < 2;
+  $('modlistSide').innerHTML = S.modules.length > 1 ? mods.replace(/class="navlink" /g, 'class="navlink modlink" ') : '';
+  const cur = S.modules.find((m) => m.key === S.mod);
+  $('brandMod').textContent = cur ? cur.label : 'Setup';
+  $('vendorMenu').hidden = S.mod !== 'vendors';
+  $('navToolkit').hidden = !S.me.can.vendors;
+  $('modMenu').innerHTML = cur && S.mod !== 'vendors'
+    ? cur.menu.map((i) => `<a class="navlink" href="${S.mod === 'overview' ? '#overview' : `#${S.mod}/${i.key}`}"><span>${esc(i.label)}</span></a>`).join('') : '';
+  $('who').innerHTML = `<b>${esc(S.me.name)}</b>${esc(roleLabel(S.me.role))}<button type="button" id="logout">Sign out</button>`;
+  $('logout').onclick = async () => { await POST('/auth/logout').catch(() => {}); location.href = '/login'; };
+  if (!S.me.can.vendors) return;
   $('n-all').textContent = S.vendors.filter((v) => v.stage !== 'notnow').length || '';
   $('n-areas').textContent = S.areas.length || '';
   $('navStages').innerHTML = S.stages.map((s) => {
@@ -149,9 +184,6 @@ function renderNav() {
     return `<a class="navlink" href="#funnel/${s.key}"><span>${esc(s.label)}</span><span class="n${hot ? ' hot' : ''}">${n || ''}</span></a>`;
   }).join('');
   $('navNew').hidden = !S.me.can.sell;
-  $('navOverview').hidden = !S.me.can.overview;
-  $('who').innerHTML = `<b>${esc(S.me.name)}</b>${esc(roleLabel(S.me.role))}<button type="button" id="logout">Sign out</button>`;
-  $('logout').onclick = async () => { await POST('/auth/logout').catch(() => {}); location.href = '/login'; };
   const h = location.hash.replace(/^#/, '');
   const m = document.querySelector(`#navStages a[href="#${CSS.escape(h)}"]`);
   if (m) m.setAttribute('aria-current', 'page');
@@ -159,6 +191,16 @@ function renderNav() {
 function closeMenu() { $('side').classList.remove('open'); $('scrim').hidden = true; $('menuBtn').setAttribute('aria-expanded', 'false'); }
 $('menuBtn').onclick = () => { $('side').classList.add('open'); $('scrim').hidden = false; $('menuBtn').setAttribute('aria-expanded', 'true'); };
 $('scrim').onclick = closeMenu;
+
+/* =========================================================
+   MODULES NOT BUILT YET
+   ========================================================= */
+function viewComing(modKey, itemKey) {
+  const m = S.modules.find((x) => x.key === modKey);
+  const item = (m.menu.find((i) => i.key === itemKey) || m.menu[0]);
+  $('main').innerHTML = `<div class="wrap"><div class="pagehead"><div><div class="eyebrow">${esc(m.label)}</div><h1>${esc(item.label)}</h1></div></div>
+    <div class="card empty"><h2>Coming next</h2><p>This screen is being built. Until then, use the current tools for ${esc(m.label.toLowerCase())}.</p></div></div>`;
+}
 
 /* =========================================================
    DASHBOARD
@@ -1066,7 +1108,7 @@ function viewInstall(v) {
 function viewSetup(tab) {
   const can = S.me.can;
   const tabs = [can.manageUsers && ['team', 'Team'], can.editSettings && ['fees', 'Fees'], can.editSettings && ['print', 'Print price list'],
-    can.editSettings && ['categories', 'Categories'], can.editSettings && ['wording', 'Agreement wording'], ['owners', 'Owners'], ['account', 'My account']].filter(Boolean);
+    can.editSettings && ['categories', 'Categories'], can.editSettings && ['wording', 'Agreement wording'], can.vendors && ['owners', 'Owners'], ['account', 'My account']].filter(Boolean);
   if (!tabs.find((t) => t[0] === tab)) { location.replace('#setup/' + tabs[0][0]); return; }
   function shell(inner) {
     $('main').innerHTML = `<div class="wrap"><div class="pagehead"><div><div class="eyebrow">Setup</div><h1>${esc(tabs.find((t) => t[0] === tab)[1])}</h1></div></div>

@@ -51,6 +51,13 @@ nav.side{background:var(--side);color:var(--side-ink);padding:20px 14px;display:
 .navgroup{font-size:var(--fs-meta);line-height:var(--lh-meta);color:var(--side-muted);padding:14px 10px 4px;letter-spacing:.06em;text-transform:uppercase}
 .navfoot{margin-top:auto;padding-top:14px}
 .topbar{display:none}
+.col{min-width:0;display:flex;flex-direction:column}
+/* Module switcher: top bar on wide screens, list at the top of the slide-out menu on phones */
+.modbar{display:flex;gap:4px;overflow-x:auto;padding:8px 24px;background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+.modbar a{display:inline-flex;align-items:center;min-height:var(--tap);padding:6px 14px;border-radius:999px;text-decoration:none;color:var(--ink);font-weight:600;font-size:var(--fs-card);line-height:var(--lh-card);white-space:nowrap}
+.modbar a:hover{background:var(--soft)}
+.modbar a[aria-current="page"]{background:var(--ink);color:var(--bg)}
+.modlist{display:none}
 .scrim{position:fixed;inset:0;background:rgba(10,5,25,.5);z-index:40}
 @media (max-width:860px){
   .app{grid-template-columns:minmax(0,1fr)}
@@ -58,6 +65,8 @@ nav.side{background:var(--side);color:var(--side-ink);padding:20px 14px;display:
   .topbar .wm{font-size:var(--fs-h1)}
   nav.side{position:fixed;left:0;top:0;bottom:0;width:272px;z-index:50;transform:translateX(-100%);transition:transform .2s ease}
   nav.side.open{transform:none}
+  .modbar{display:none}
+  .modlist{display:flex;flex-direction:column;gap:2px;padding-bottom:10px;margin-bottom:6px;border-bottom:1px solid var(--side-2)}
 }
 @media (prefers-reduced-motion:reduce){nav.side{transition:none}}
 

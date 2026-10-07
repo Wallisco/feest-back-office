@@ -129,6 +129,25 @@ test('vendor journey: areas → capture → toolkit → agreement → pack → s
     assert.equal(ov.body.jar.pct, null, 'no offers is not 0%');
     assert.equal(ov.body.series.length, 30);
 
+    // Modules: a dispatcher sees Overview, Operations, Drivers and Metrics, and is refused vendor data
+    assert.equal((await call('POST', '/api/users', { name: 'Dee Dispatch', role: 'dispatcher', email: 'dee@test.local', password: 'dispatch-pw-1' })).status, 200);
+    await call('POST', '/auth/logout'); cookie = '';
+    await call('POST', '/auth/login', { email: 'dee@test.local', password: 'dispatch-pw-1' });
+    const me = (await call('GET', '/api/me')).body;
+    assert.deepEqual(me.modules.map((m) => m.key), ['overview', 'operations', 'drivers', 'metrics']);
+    assert.equal((await call('GET', '/api/bootstrap')).status, 403);
+    assert.equal((await call('GET', `/api/vendors/${vid}`)).status, 403);
+    assert.equal((await call('GET', '/api/dashboard?days=30')).status, 403);
+    assert.equal((await call('GET', '/api/modules/payouts')).status, 403);
+    assert.equal((await call('GET', '/api/modules/operations')).body.menu[0].label, 'Live map');
+    assert.equal((await call('POST', '/api/me/password', { current: 'dispatch-pw-1', next: 'dispatch-pw-2' })).status, 200, 'every role has My account');
+
+    // A sales rep sees only Vendors
+    await call('POST', '/auth/logout'); cookie = '';
+    await call('POST', '/auth/login', { email: 'aziz@test.local', password: 'rep-password-1' });
+    assert.deepEqual((await call('GET', '/api/me')).body.modules.map((m) => m.key), ['vendors']);
+    assert.equal((await call('GET', '/api/modules/operations')).status, 403);
+
     // Public toolkit
     const tk = await fetch(base + '/toolkit');
     assert.equal(tk.status, 200);

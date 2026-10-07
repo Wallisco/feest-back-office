@@ -12,7 +12,7 @@ const arg = (k) => { const i = process.argv.indexOf(`--${k}`); return i > -1 ? p
 (async () => {
   const name = arg('name'), email = (arg('email') || '').toLowerCase(), role = arg('role') || 'admin';
   let password = arg('password');
-  if (!name || !email) throw new Error('Usage: create-user.js --name "Full Name" --email you@example.com [--role ceo|admin|sales_lead|sales_rep|...] [--password ...]');
+  if (!name || !email) throw new Error('Usage: create-user.js --name "Full Name" --email you@example.com [--role ceo|admin|sales_lead|sales_rep|dispatcher|ops_lead|driver_support|...] [--password ...]');
   if (!ROLES.includes(role)) throw new Error(`Role must be one of: ${ROLES.join(', ')}`);
   const generated = !password;
   if (generated) password = crypto.randomBytes(9).toString('base64url');
