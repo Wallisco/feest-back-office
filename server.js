@@ -15,6 +15,7 @@ const storage = require('./src/lib/storage');
 const { login, logout } = require('./src/lib/auth');
 const { router: vendorApi } = require('./src/vendors/routes');
 const { router: metricsApi } = require('./src/metrics/routes');
+const { renderSite } = require('./src/site/render');
 
 const app = express();
 app.set('trust proxy', 1); // behind Nginx
@@ -23,6 +24,17 @@ app.disable('x-powered-by');
 app.use((req, res, next) => {
   res.set({ 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'strict-origin-when-cross-origin' });
   next();
+});
+
+// Public: feest.app (FEEST Driver home, privacy policy, support, delete account), by host name.
+const SITE_HOSTS = (process.env.SITE_HOSTS || 'feest.app,www.feest.app').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
+app.use((req, res, next) => {
+  if (!SITE_HOSTS.includes(String(req.hostname || '').toLowerCase())) return next();
+  if (req.path === '/site.css') return res.sendFile(path.join(__dirname, 'public/site/site.css'), { headers: { 'Cache-Control': 'public, max-age=3600' } });
+  if (req.path === '/robots.txt') return res.type('text').send('User-agent: *\nAllow: /\n');
+  const page = renderSite(req.path);
+  if (!page) return res.status(404).type('html').send(renderSite('/').html.replace(/<main>[\s\S]*<\/main>/, '<main><div class="wrap"><h1>Page not found</h1><p><a href="/">Go to the home page</a></p></div></main>'));
+  res.set({ 'Cache-Control': 'public, max-age=300', 'Strict-Transport-Security': 'max-age=63072000; includeSubDomains' }).type('html').send(page.html);
 });
 
 // Public: the FEEST Sales Toolkit (no login, no data stored server-side).
