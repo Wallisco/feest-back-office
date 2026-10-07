@@ -15,25 +15,31 @@
 <body>
 <div class="topbar"><span class="wm">fe<span class="roll">e</span>st</span><button class="btn btn-sm btn-coral" id="menuBtn" aria-controls="side" aria-expanded="false">Menu</button></div>
 <div class="app">
-  <nav class="side" id="side" aria-label="Main">
-    <div class="brand"><span class="wm">fe<span class="roll">e</span>st</span><small>Back office · Vendors</small></div>
+  <nav class="side" id="side" aria-label="Menu">
+    <div class="brand"><span class="wm">fe<span class="roll">e</span>st</span><small>Back office · <span id="brandMod">FEEST</span></small></div>
     <div class="stripe"></div>
-    <a class="navlink navnew" href="#new" id="navNew">New vendor</a>
-    <a class="navlink" href="#overview" id="navOverview" hidden><span>Overview</span></a>
-    <a class="navlink" href="#dashboard"><span>Vendor dashboard</span></a>
-    <div class="navgroup">Step 1</div>
-    <a class="navlink" href="#areas"><span>Areas and reps</span><span class="n" id="n-areas"></span></a>
-    <div class="navgroup">Vendor funnel</div>
-    <a class="navlink" href="#funnel/all"><span>All vendors</span><span class="n" id="n-all"></span></a>
-    <div id="navStages"></div>
+    <div class="modlist" id="modlistSide"></div>
+    <div id="vendorMenu" hidden>
+      <a class="navlink navnew" href="#new" id="navNew">New vendor</a>
+      <a class="navlink" href="#dashboard"><span>Dashboard</span></a>
+      <div class="navgroup">Step 1</div>
+      <a class="navlink" href="#areas"><span>Areas and reps</span><span class="n" id="n-areas"></span></a>
+      <div class="navgroup">Vendor funnel</div>
+      <a class="navlink" href="#funnel/all"><span>All vendors</span><span class="n" id="n-all"></span></a>
+      <div id="navStages"></div>
+    </div>
+    <div id="modMenu"></div>
     <div class="navfoot">
       <a class="navlink" href="#setup"><span>Setup</span></a>
-      <a class="navlink" href="/toolkit" target="_blank" rel="noopener"><span>Sales Toolkit</span><span class="n">↗</span></a>
+      <a class="navlink" href="/toolkit" target="_blank" rel="noopener" id="navToolkit" hidden><span>Sales Toolkit</span><span class="n">↗</span></a>
       <div class="who" id="who"></div>
     </div>
   </nav>
   <div class="scrim" id="scrim" hidden></div>
-  <main id="main"><div class="wrap"><p class="small">Loading…</p></div></main>
+  <div class="col">
+    <nav class="modbar" id="modbar" aria-label="Modules" hidden></nav>
+    <main id="main"><div class="wrap"><p class="small">Loading…</p></div></main>
+  </div>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="/static/finance.js"></script>
