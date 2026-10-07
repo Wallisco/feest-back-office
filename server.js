@@ -15,6 +15,7 @@ const storage = require('./src/lib/storage');
 const { login, logout } = require('./src/lib/auth');
 const { router: vendorApi } = require('./src/vendors/routes');
 const { router: metricsApi } = require('./src/metrics/routes');
+const { router: modulesApi } = require('./src/modules/routes');
 
 const app = express();
 app.set('trust proxy', 1); // behind Nginx
@@ -82,6 +83,7 @@ app.get(/^\/files\/(.+)$/, async (req, res) => {
 });
 
 // API (JSON). Photos and signatures arrive as data URLs, so allow a few MB.
+app.use('/api', modulesApi);
 app.use('/api', metricsApi);
 app.use('/api', express.json({ limit: '8mb' }), vendorApi);
 
