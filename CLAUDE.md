@@ -1,6 +1,11 @@
 FEEST Back Office — instructions for Claude Code
 Read this before every task. The full product spec is `docs/feest-spec.md`; the step-by-step build prompts are `docs/claude-code-playbook.md`. It follows the ScootHero Back Office (github.com/Wallisco/Scoothero_Back_Office): same stack, same rules, same method, FEEST branding.
 
+IMPORTANT: this is NOT the ScootHero back office, and FEEST is not a module inside it.
+- This repo (Wallisco/feest-back-office) is its own app, with its own database (feest_backoffice), PM2 process (feest-backoffice, port 3100), Nginx site and GitHub Actions deploy.
+- It only borrows from ScootHero: the same stack, rules and look, and for now the same server (the ScootHero HostyAfrica VPS, 102.68.98.191) at delivery-test.scoothero.co.za. Sharing the machine and the scoothero.co.za domain is hosting, not code.
+- Never add FEEST code, tables or routes to Wallisco/Scoothero_Back_Office, and never touch ScootHero's database, PM2 process or Nginx site from here. Read the ScootHero repo only as a reference for patterns.
+
 What this is
 The one FEEST back office (Habibi was the working name; there is no separate Habibi back office). One login, one Postgres database, modules: Overview, Vendors (built), Operations, Drivers, Pricing, Payouts, Metrics, Integration, Setup. One app, `server.js` at the repo root: Node 22, Express 5, Postgres, express-session with connect-pg-simple. Hosted on the ScootHero HostyAfrica VPS beside the ScootHero back office (port 3100, its own database and PM2 process), deployed from GitHub Actions over SSH (`deploy/`). The public Sales Toolkit is served at `/toolkit`.
 

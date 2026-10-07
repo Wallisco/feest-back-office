@@ -2,6 +2,8 @@
 
 The one FEEST back office: vendors, operations, drivers, pricing, payouts and metrics. Built the same way as the ScootHero Back Office (spec, CLAUDE.md, a step-by-step Claude Code playbook), with FEEST branding. Habibi was the working name for the same platform.
 
+> **Not the ScootHero back office.** This is a separate app with its own repo, database and process. It only shares the ScootHero server and the `scoothero.co.za` domain for testing (`delivery-test.scoothero.co.za`).
+
 - **Spec:** `docs/feest-spec.md`
 - **Build steps for Claude Code:** `docs/claude-code-playbook.md` (one session per step, plan mode first)
 - **Rules:** `CLAUDE.md`

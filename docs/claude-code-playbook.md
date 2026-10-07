@@ -21,7 +21,7 @@ The spec is `docs/feest-spec.md`. The rules are `CLAUDE.md`.
 **Check:** locally, a dispatcher sees Overview, Operations and Drivers; a sales rep sees only Vendors.
 
 ## Step 1 — Server and pipeline (you do the server part)
-For now the back office runs as a **test server under ScootHero**: `delivery-test.scoothero.co.za` on the ScootHero HostyAfrica VPS, beside the ScootHero back office (own database, PM2 process and Nginx site). It moves to its own domain when the FEEST name and hosting are final (spec open decision 2).
+For now the FEEST back office is hosted on ScootHero's server, as a separate app (not part of the ScootHero back office): `delivery-test.scoothero.co.za` on the ScootHero HostyAfrica VPS, beside the ScootHero back office (own database, PM2 process and Nginx site). It moves to its own domain when the FEEST name and hosting are final (spec open decision 2).
 
 On the server, as root:
 ```bash
